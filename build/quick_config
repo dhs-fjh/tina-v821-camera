@@ -1,0 +1,2124 @@
+#!/usr/bin/env python3
+
+import os, sys
+import argparse
+import re
+import subprocess
+
+sys.path.append(os.path.dirname(__file__) + '/pylib/json5-0.9.25')
+import json5
+
+parser = argparse.ArgumentParser()
+parser.add_argument("buildconfig", default="../.buildconfig",
+                    help="the buildconfig file")
+parser.add_argument("--config", help="configuration items that need to loaded")
+args = parser.parse_args()
+
+if not os.path.exists(args.buildconfig):
+    print("%s not exists" % args.buildconfig)
+    sys.exit(1)
+
+configs = {}
+config_file = None
+common_config_file = None
+syconfig_path = None
+build_dir = None
+kernel_dts_path = None
+uboot_dts_path = None
+kernel_defconf = None
+top_dir = None
+kerenl_ver = None
+board_config_dir = None
+kernel_src_path = None
+kernel_cross_compile = None
+bsp_path = None
+search_list = None
+
+rtos_project = None
+rtos_device = None
+rtos_plat = None
+
+diff_summary = None
+prepare_note = None
+finish_note = None
+force_config = None
+check_distclean = None
+builtin_var = {}
+
+
+def do_cmd(cmd, env=None):
+    if env:
+        s = subprocess.Popen(cmd, env=env, shell=True)
+    else:
+        s = subprocess.Popen(cmd, shell=True)
+    return_code = s.wait()
+    return return_code
+
+
+def do_cmd_with_output(cmd, env=None):
+    if env:
+        s = subprocess.Popen(cmd, env=env, shell=True, stdout=subprocess.PIPE)
+    else:
+        s = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    output = s.communicate()[0]
+    return_code = s.returncode
+    return return_code, output.decode()
+
+
+def _load_config(filepath):
+    pattern = re.compile(r'^export ([^\s]+)=(.*)$')
+    with open(filepath, "r") as f:
+        for line in f:
+            match = pattern.search(line)
+            if not match:
+                continue
+            key = match.group(1)
+            val = match.group(2)
+            configs[key] = val
+
+
+def init_cfgval():
+    global config_file
+    global common_config_file
+    global syconfig_path
+    global build_dir
+    global kernel_dts_path
+    global uboot_dts_path
+    global kernel_defconf
+    global top_dir
+    global kerenl_ver
+    global board_config_dir
+    global kernel_src_path
+    global bsp_path
+    global kernel_cross_compile
+    global search_list
+    global rtos_project, rtos_device, rtos_plat
+    global builtin_var
+
+    board_config_dir = configs['LICHEE_BOARD_CONFIG_DIR']
+    linux_dev = configs['LICHEE_LINUX_DEV']
+    kerenl_ver = configs['LICHEE_KERN_VER']
+
+    search_list = [
+        # 1. ${LICHEE_BOARD_CONFIG_DIR}/${LICHEE_LINUX_DEV}/
+        '{}/{}'.format(board_config_dir, linux_dev),
+        # 2. ${LICHEE_BOARD_CONFIG_DIR}/${LICHEE_KERN_VER}/
+        '{}/{}'.format(board_config_dir, kerenl_ver),
+        # 3. ${LICHEE_BOARD_CONFIG_DIR}/
+        '{}'.format(board_config_dir),
+        # 4. ${LICHEE_BOARD_CONFIG_DIR}/../default/
+        '{}/../default'.format(board_config_dir),
+    ]
+
+    if board_config_dir == None:
+        print("LICHEE_BOARD_CONFIG_DIR not set in %s" % args.buildconfig)
+        sys.exit(1)
+
+    syconfig_path = board_config_dir + '/sys_config.fex'
+    if not os.path.exists(syconfig_path):
+        print("%s is not exists" % syconfig_path)
+        sys.exit(1)
+
+    kernel_src_path = configs['LICHEE_KERN_DIR']
+    if not os.path.exists(kernel_src_path):
+        print("%s is not exists" % kernel_src_path)
+        sys.exit(1)
+
+    cmd = 'find {} -perm /a+x -a -regex \'.*-gcc\' | head -n 1'.format(configs['LICHEE_TOOLCHAIN_PATH'])
+    ret, kernel_cross_compile = do_cmd_with_output(cmd)
+    if ret != 0:
+        print('exec {} fialed!,ret = {}'.format(cmd, ret))
+        sys.exit(1)
+    kernel_cross_compile = kernel_cross_compile[:-4]
+
+    bsp_path = configs['LICHEE_BSP_DIR']
+    if not os.path.exists(bsp_path):
+        print("%s is not exists" % bsp_path)
+
+    kernel_dts_path = board_config_dir + '/{}/board.dts'.format(kerenl_ver)
+    if not os.path.exists(kernel_dts_path):
+        kernel_dts_path = board_config_dir + '/board.dts'
+    if not os.path.exists(kernel_dts_path):
+        print("%s is not exists" % kernel_dts_path)
+        sys.exit(1)
+
+    kernel_defconf = configs['LICHEE_KERN_DEFCONF_ABSOLUTE']
+    if not os.path.exists(kernel_defconf):
+        print("%s is not exists" % kernel_defconf)
+        sys.exit(1)
+
+    top_dir = configs['LICHEE_TOP_DIR']
+    if not os.path.exists(top_dir):
+        print("%s is not exists" % top_dir)
+        sys.exit(1)
+
+    uboot_ver = configs['LICHEE_BRANDY_UBOOT_VER']
+    uboot_dts_path = board_config_dir + '/uboot-{}/uboot-board.dts'.format(uboot_ver)
+    if not os.path.exists(uboot_dts_path):
+        uboot_dts_path = board_config_dir + '/uboot-board.dts'
+    if not os.path.exists(uboot_dts_path):
+        print("%s is not exists" % uboot_dts_path)
+        uboot_dts_path = None
+
+    config_file = board_config_dir + '/quick_config.json'
+    if not os.path.exists(config_file):
+        config_file = board_config_dir + '/../default/quick_config.json'
+    if not os.path.exists(config_file):
+        print("%s is not exists" % config_file)
+        sys.exit(1)
+
+    common_config_file = board_config_dir + '/../default/quick_config.json'
+    if not os.path.exists(common_config_file):
+        common_config_file = None
+
+    build_dir = configs['LICHEE_BUILD_DIR']
+    if build_dir == None:
+        print("LICHEE_BUILD_DIR not set in %s" % args.buildconfig)
+        sys.exit(1)
+
+    rtos_project = configs['LICHEE_RTOS_PROJECT_NAME']
+    # scan rots dir
+    # format:
+    #       projec = v821_e907_perf2
+    #       device = v821_e907
+    #       plat   = perf2
+    cmd = 'find {}/rtos/lichee/rtos/projects/ -maxdepth 2 -mindepth 2 -type d'.format(top_dir)
+    ret, rtos_prjs = do_cmd_with_output(cmd)
+    if ret == 0:
+        for p in rtos_prjs.split():
+            p = p.partition('{}/rtos/lichee/rtos/projects/'.format(top_dir))[2]
+            if p.replace('/', '_') == rtos_project:
+                rtos_device = p.split('/')[0]
+                rtos_plat = p.split('/')[1]
+    else:
+        print("scan {}/rtos/lichee/rtos/projects/ fialed".format(top_dir))
+        rtos_device = None
+        rtos_plat = None
+
+    if rtos_device == None:
+        rtos_project = None
+
+    builtin_var['rootfs'] = '{}/out/{}/{}/{}/build_dir/target/root-{}-{}'.format(configs['LICHEE_TOP_DIR'],
+                configs['LICHEE_IC'], configs['LICHEE_BOARD'], configs['LICHEE_LINUX_DEV'],
+                configs['LICHEE_IC'], configs['LICHEE_BOARD'])
+    builtin_var['configs'] = configs['LICHEE_BOARD_CONFIG_DIR']
+    builtin_var['plat'] = '{}/openwrt/target/{}/{}-{}'.format(
+                configs['LICHEE_TOP_DIR'], configs['LICHEE_IC'],
+                configs['LICHEE_IC'], configs['LICHEE_BOARD'])
+    builtin_var.update(configs.copy())
+
+
+def backup_file(target):
+    file_name = target + '.backup'
+    if not os.path.exists(file_name):
+        do_cmd('cp {} {}'.format(target, file_name))
+
+
+def restore_file(target):
+    file_name = target + '.backup'
+    do_cmd('mv {} {}'.format(file_name, target))
+
+
+def record_diff(target):
+    file_name = target + '.backup'
+    do_cmd('echo "diff {}" >> {}'.format(target, diff_summary))
+    do_cmd('diff {} {} >> {}'.format(file_name, target, diff_summary))
+    do_cmd('rm {}'.format(file_name))
+
+
+def leading_whitespace_count(s):
+    expanded = s.expandtabs()
+    return len(expanded) - len(expanded.lstrip())
+
+
+def set_config_value(syconfig, mainkey, subkey, val):
+    with open(syconfig, 'r') as file:
+        lines = file.readlines()
+
+    found_mainkey = False
+    found_subkey = False
+    new_lines = []
+
+    for i, line in enumerate(lines):
+        if line.strip() == f"[{mainkey}]":
+            found_mainkey = True
+            found_subkey = False
+            new_lines.append(line)
+            continue
+
+        if found_mainkey and not found_subkey:
+            if line.strip().startswith(subkey):
+                new_lines.append(f"{subkey} = {val}\n")
+                found_subkey = True
+                continue
+            if line.strip().startswith("[") or (
+                    line.strip() == "" and i + 1 < len(lines) and lines[i + 1].strip().startswith("[")):
+                new_lines.append(f"{subkey} = {val}\n")
+                new_lines.append(line)
+                found_subkey = True
+                continue
+
+        new_lines.append(line)
+
+    if not found_mainkey:
+        new_lines.append(f"\n[{mainkey}]\n")
+        new_lines.append(f"{subkey} = {val}\n")
+
+    with open(syconfig, 'w') as file:
+        file.writelines(new_lines)
+
+
+def set_sysconfig_fex(syconfig, mainkey, subkey, val):
+    set_config_value(syconfig, mainkey, subkey, val)
+
+
+def parse_sysconfig(syconfig, v):
+    '''
+        format:
+        sysconfig" : {
+            "mainkey" : {
+                "subkey1" : val1,
+                "subkey2" : val2
+            }
+        }
+    '''
+    if not isinstance(v, dict):
+        print('sysconfig : invalid format, need { }')
+        return 0
+    backup_file(syconfig)
+    for mainkey, subkeys in v.items():
+        if not isinstance(subkeys, dict):
+            continue
+        for subkey, val in subkeys.items():
+            set_sysconfig_fex(syconfig, mainkey, subkey, val)
+    record_diff(syconfig)
+
+
+def set_bootpkg(bootpkg, option, item, val=None):
+    done = False
+
+    compress_suffix = {
+        '-gz': '.gz',
+        '-lzma': '.lzma',
+        '-lz4': '.lz4',
+    }
+    valid_option = ['set', 'enable', 'disable']
+
+    if option not in valid_option:
+        print("bootpkg invalid option {} for {}" % (option, item))
+        return -1
+
+    if option == 'set' and val == None:
+        print("parse bootpkg %s %s failed" % (option, item))
+        return -1
+
+    with open(bootpkg, 'r') as f:
+        lines = f.readlines()
+
+    f = open(bootpkg, 'w')
+    for line in lines:
+        match = re.match(r'^(;?)item=([a-z0-9-_\.]+)(,[ \t]*)([a-z0-9-_\.]+)(,?)$', line)
+
+        if not match or done:
+            f.write(line)
+            continue
+        item_name = match.group(2)
+        for ignore in compress_suffix.keys():
+            if item_name.endswith(ignore):
+                item_name = item_name[:-len(ignore)]
+                break
+        if item != item_name:
+            f.write(line)
+            continue
+        if option == 'enable':
+            newline = '' + 'item=' + match.group(2) + match.group(3) + match.group(4) + match.group(5)
+        elif option == 'disable':
+            newline = ';' + 'item=' + match.group(2) + match.group(3) + match.group(4) + match.group(5)
+        else:
+            for k, v in compress_suffix.items():
+                if val.endswith(v):
+                    item_name = item_name + k
+                    break
+            newline = match.group(1) + 'item=' + item_name + match.group(3) + val + match.group(5)
+        f.write(newline + '\n')
+        done = True
+    if not done:
+        newline = match.group(1) + 'item=' + item + match.group(3) + val + match.group(5)
+        f.write(newline + '\n')
+    f.close()
+    return 0
+
+
+def get_bootpkg(bootpkg, item):
+    with open(bootpkg, 'r') as f:
+        lines = f.readlines()
+
+    for line in lines:
+        match = re.match(r'^(;?)item=([a-z0-9-_\.]+)(,[ \t]*)([a-z0-9-_\.]+)(,?)$', line)
+        if not match or item != match.group(2):
+            f.write(line)
+            continue
+        return match.group(4)
+    return None
+
+
+def parse_bootpkg(bootpkg, v):
+    '''
+    format:
+    "bootpkg" : {
+        "item_name" : val    重新设置val
+        "item_name-enable" : 0/1    添加或减少item
+    }
+    '''
+    backup_file(bootpkg)
+    for item, val in v.items():
+        # print("\t%s : %s" % (item, val))
+        if item.endswith('-enable'):
+            item = item[:-len('-enable')]
+            if val == 1:
+                set_bootpkg(bootpkg, 'enable', item)
+            else:
+                set_bootpkg(bootpkg, 'disable', item)
+        else:
+            set_bootpkg(bootpkg, 'set', item, val)
+    record_diff(bootpkg)
+
+
+def parse_dts(dts_file):
+    with open(dts_file, 'r') as f:
+        lines = f.readlines()
+
+    idx = 0
+    in_comment = False
+    in_property = False
+    tree = {}
+    node_line_list = []
+    continue_prop_name = None
+    in_if_block = False  # To track if we're inside an #if block
+    include_block = True  # To track whether to include or skip the block
+
+    # property_match1 = re.compile(r'^([\w:"-<>]+)\s*=?[ \t]*(.*);')
+    # # prop type1: xxx = yyy; /* */
+    property_type1 = re.compile(r'^([\w:"-<>]+)\s*=[ \t]*(.*);')
+    # prop type2: xxx = x1, x2,
+    #                  x3, x4;
+    property_type2_0 = re.compile(r'^([\w:"-<>]+)\s*=[ \t]*([^;]*)$')
+    property_type2_1 = re.compile(r'^([\t\w:"-<> ]+)\s*;')  # include space
+    # prop type3: xxx;
+    property_type3 = re.compile(r'^([\w:"-<>]+)\s*;')  # except space
+
+    while idx < len(lines):
+        line = lines[idx].strip()
+        linenum = idx + 1
+        space_cnt = leading_whitespace_count(lines[idx])
+
+        if line.startswith('//'):
+            idx = idx + 1
+            continue
+        # comment: /* ... */
+        if line.startswith('/*') and line.endswith('*/'):
+            idx = idx + 1
+            continue
+        # comment: /* ...
+        if line.startswith('/*') and not line.endswith('*/'):
+            in_comment = True
+            idx = idx + 1
+            continue
+        # comment: ... */
+        if not line.startswith('/*') and line.endswith('*/') and in_comment == True:
+            in_comment = False
+            idx = idx + 1
+            continue
+        if in_comment:
+            idx = idx + 1
+            continue
+        if '{' in line and '}' in line:
+            print('ERROR: "{" and "}" are not supported on the same line %d' % (linenum))
+            sys.exit(1)
+
+        # Handling #if preprocessor directive
+        if line.startswith('#if 0'):
+            in_if_block = True
+            # A simple mechanism to check if the block should be included
+            # For now, assuming that any #if 0 is treated as False
+            include_block = False
+            idx = idx + 1
+            continue
+        elif line.startswith('#if 1'):
+            in_if_block = True
+            # A simple mechanism to check if the block should be included
+            # For now, assuming that any #if 1 is treated as true
+            include_block = True
+            idx = idx + 1
+            continue
+        elif line.startswith('#if'):
+            in_if_block = True
+            # A simple mechanism to check if the block should be included
+            # For now, assuming that any #if is treated as true
+            include_block = True
+            idx = idx + 1
+            continue
+        elif line.startswith('#else') and in_if_block:
+            # Toggle the block's inclusion if else is encountered
+            include_block = not include_block
+            idx = idx + 1
+            continue
+        elif line.startswith('#endif') and in_if_block:
+            # End the #if block
+            in_if_block = False
+            idx = idx + 1
+            continue
+
+        # Skip lines inside #if block if the condition is false
+        if not include_block:
+            idx = idx + 1
+            continue
+
+        # node start
+        if '{' in line:
+            # print("parse: [%d] %s" % (linenum, line))
+            node_name = line.split('{')[0].strip()
+            if node_name.startswith('&'):
+                # &xxxx {
+                node_name = node_name[1:]
+            elif ':' in node_name:
+                # xxxx: yyyy {
+                node_name = node_name.split(':')[0].strip()
+            tree[linenum] = {}
+            tree[linenum]['name'] = node_name
+            tree[linenum]['start'] = linenum
+            tree[linenum]['lspace'] = space_cnt
+            tree[linenum]['subnode'] = []
+            if len(node_line_list) > 0:
+                tree[node_line_list[-1]]['subnode'].append(linenum)
+            node_line_list.append(linenum)
+        # node end
+        elif '}' in line:
+            # print("parse: [%d] %s" % (linenum, line))
+            node_line = node_line_list.pop()
+            node_name = tree[node_line]['name']
+
+            if not line.startswith('}'):
+                print('ERROR: unsupport %s, need }; in line %d' % (line, linenum))
+                sys.exit(1)
+
+            tree[node_line]['end'] = linenum
+            # print("node_name: <%s> start:%d end:%d\n" % (node_name, tree[node_line]['start'], tree[node_line]['end']))
+
+            # print('node_name: %s [%d-%d]' % (node_name, tree[node_line]['start'], tree[node_line]['end']))
+            # if 'property' in tree[node_line].keys():
+            #     for k,v in tree[node_line]['property'].items():
+            #         print('\t%s = %s;' %(k, v))
+        # property range
+        else:
+            if len(node_line_list) == 0 or len(line) == 0:
+                idx = idx + 1
+                continue
+            # print("%s" % (line))
+            node_line = node_line_list[-1]
+            node_name = tree[node_line]['name']
+            # prop type3: xxx;
+            match1 = property_type1.search(line)
+            match2_0 = property_type2_0.search(line)
+            match2_1 = property_type2_1.search(line)
+            match3 = property_type3.search(line)
+            if match1:
+                # prop type1: xxx = yyy;
+                prop_name = match1.group(1)
+                prop_val = match1.group(2)
+                # print('[%d] %s = |%s|' % (linenum, prop_name, prop_val))
+                if 'property' not in tree[node_line].keys():
+                    tree[node_line]['property'] = {}
+                tree[node_line]['property'][prop_name] = {}
+                tree[node_line]['property'][prop_name]['line'] = []
+                tree[node_line]['property'][prop_name]['line'].append(linenum)
+                tree[node_line]['property'][prop_name]['val'] = prop_val
+            elif match2_0:
+                # across lines property start
+                # suce as:
+                #   pins = "pin1", "pin2"
+                #           "pin3", "pin4";
+                # print('[%d] cross prop start %s' % (linenum, line))
+                if continue_prop_name != None:
+                    print('BUG: [%d] %s nest in %s' % (linenum, match2_0.group(1), continue_prop_name))
+                    sys.exit(1)
+                prop_name = match2_0.group(1).strip()
+                prop_val = match2_0.group(2).strip()
+
+                if 'property' not in tree[node_line].keys():
+                    tree[node_line]['property'] = {}
+                tree[node_line]['property'][prop_name] = {}
+                tree[node_line]['property'][prop_name]['line'] = []
+                tree[node_line]['property'][prop_name]['line'].append(linenum)
+                tree[node_line]['property'][prop_name]['val'] = prop_val
+
+                continue_prop_name = match2_0.group(1)
+                in_property = True
+            elif match2_1 and in_property:
+                # across lines property end
+                # print('[%d] cross end %s' % (linenum, line))
+
+                prop_name = continue_prop_name
+                prop_val = tree[node_line]['property'][prop_name]['val'] + match2_1.group(1).strip()
+
+                tree[node_line]['property'][prop_name]['line'].append(linenum)
+                tree[node_line]['property'][prop_name]['val'] = prop_val
+
+                continue_prop_name = None
+                in_property = False
+            elif match3:
+                # prop type3: xxx;
+                # print('[%d] bool prop: %s' % (linenum, line))
+                prop_name = match3.group(1).strip()
+                prop_val = None
+
+                if 'property' not in tree[node_line].keys():
+                    tree[node_line]['property'] = {}
+                tree[node_line]['property'][prop_name] = {}
+                tree[node_line]['property'][prop_name]['line'] = []
+                tree[node_line]['property'][prop_name]['line'].append(linenum)
+                tree[node_line]['property'][prop_name]['val'] = prop_val
+            elif in_property:
+                # print('[%d] cross prop %s: %s' % (linenum, continue_prop_name, line))
+                prop_name = continue_prop_name
+                prop_val = tree[node_line]['property'][prop_name]['val'] + line.strip()
+
+                tree[node_line]['property'][prop_name]['val'] = prop_val
+                # tree[node_line]['property'][prop_name]['line'].append(linenum)
+            else:
+                print('DTS Line: [%d] Parser Fail. Unknow Syntax "%s" for device tree.' % (linenum, line))
+                sys.exit(1)
+
+            # print('[%d] %s: proerty %s' % (linenum, node_name, line))
+        idx = idx + 1
+
+    return tree
+
+
+def dts_find_node_idx(dts_tree, node_name):
+    for line, node in dts_tree.items():
+        if node['name'] == node_name:
+            return line
+    return 0
+
+
+def dts_find_node(dts_tree, node_name):
+    node_names = []
+
+    if node_name != '/':
+        if node_name.startswith('/'):
+            node_names.append('/')
+            node_name = node_name[1:]
+
+        if '/' in node_name:
+            for tmp in node_name.split('/'):
+                if tmp.strip() == '':
+                    continue
+                node_names.append(tmp.strip())
+        else:
+            node_names.append(node_name)
+    else:
+        node_names.append('/')
+
+    linenum = dts_find_node_idx(dts_tree, node_names[0])
+    if linenum == 0:
+        return 0
+    node = dts_tree[linenum]
+
+    if len(node_names) > 1:
+        for n in node_names[1:]:
+            if 'subnode' not in node.keys():
+                print('dts_find_node: %s is leaf node' % (node['name']))
+                return 0
+
+            find_nodeline = 0
+            for line in node['subnode']:
+                tmp_node = dts_tree[line]
+                if n != tmp_node['name']:
+                    continue
+                find_nodeline = line
+            if find_nodeline == 0:
+                return 0
+            linenum = find_nodeline
+            node = dts_tree[linenum]
+
+    return linenum
+
+
+def dts_property_query(option, dts_file, node_name, prop_name=None, prop_val=None):
+    tree = parse_dts(dts_file)
+
+    '''format
+        node_name: tree[node_line]['name']
+        startline: tree[node_line]['start']
+        endline: tree[node_line]['end']
+        property: tree[node_line]['property']
+            lines: tree[node_line]['property'][prop_name]['line']
+            val: tree[node_line]['property'][prop_name]['val']
+    '''
+    # print('dts_property_query: %s node_name=%s %s=%s' % (option, node_name, prop_name, prop_val))
+    linenum = dts_find_node(tree, node_name)
+    if linenum == 0:
+        return 0
+    node = tree[linenum]
+
+    if prop_name == None:
+        print('BUG: prop_name=None, option=  %s' % (option))
+        sys.exit(1)
+
+    if option == 'getprop':
+        if prop_name not in node['property'].keys():
+            return 0
+        return node['property'][prop_name]['val']
+
+    if prop_val != None:
+        prop_val = prop_val.replace('&', '\&')
+
+    if 'property' not in node.keys() or prop_name not in node['property'].keys():
+        if option != 'setprop':
+            return 0
+        # need to insert new property to node
+        if len(node['subnode']) > 0:
+            insert_line = node['subnode'][0]
+        else:
+            insert_line = node['end']
+        space = int(tree[linenum]['lspace'] / 8) + 1
+        if prop_val != None:
+            newline = '{}{} = {};'.format("\t" * space, prop_name, prop_val)
+            # print('inster %s = %s to node: %s' % (prop_name, prop_val, node_name))
+        else:
+            newline = '{}{};'.format("\t" * space, prop_name)
+            # print('inster %s to node: %s' % (prop_name, node_name))
+        cmd = 'sed -i \'{} i\\{}\' {}'.format(insert_line, newline, dts_file)
+        do_cmd(cmd)
+        return 0
+
+    # insert new property
+    start = node['property'][prop_name]['line'][0]
+    if len(node['property'][prop_name]['line']) == 2:
+        end = node['property'][prop_name]['line'][1]
+    else:
+        end = start
+
+    if option == 'setprop':
+        if prop_val != None:
+            # sed -i 'lines s/\(\s*\)$prop_name.*/\1prop_name = prop_val;/ file'
+            cmd = 'sed -i \'{} s|\\(\\s*\\){}.*|\\1{} = {};|\' {}'.format(start, prop_name, \
+                                                                          prop_name, prop_val, dts_file)
+        else:
+            cmd = 'sed -i \'{} s|\\(\\s*\\){}.*|\\1{};|\' {}'.format(start, prop_name, \
+                                                                     prop_name, dts_file)
+        do_cmd(cmd)
+        start = start + 1
+
+    if option == 'setprop' or option == 'delprop':
+        # del old prop
+        if end >= start:
+            # sed -i '5,9d' file
+            if end == start:
+                cmd = 'sed -i \'{}d\' {}'.format(start, dts_file)
+            else:
+                cmd = 'sed -i \'{},{}d\' {}'.format(start, end, dts_file)
+            do_cmd(cmd)
+
+    return 0
+
+
+def dts_node_query(option, dts_file, parent_node, node_name):
+    tree = parse_dts(dts_file)
+
+    # print('dts_node_query: %s parent_node=%s node_name=%s' % (option, parent_node, node_name))
+    '''format
+        node_name: tree[node_line]['name']
+        startline: tree[linenum]['start']
+        endline: tree[linenum]['end']
+        property: tree[linenum]['property']
+            lines: tree[linenum]['property'][prop_name]['line']
+            val: tree[linenum]['property'][prop_name]['val']
+
+        option: "add" or 'add_tail' or "del"
+    '''
+    full_node_name = node_name
+    if ':' in node_name:  # xxx: yyy -> node_name = xxxx
+        node_name = node_name.split(':')[0].strip()
+    elif '&' in node_name:  # &xxxx -> node_name = xxxx
+        node_name = node_name[1:]
+
+    if '/' in full_node_name:
+        print('unsupport opratem multi node name %s' % full_node_name)
+
+    if parent_node != '':
+        if parent_node != '/':
+            full_path = parent_node + '/' + node_name
+        else:
+            full_path = '/' + node_name
+    else:
+        full_path = node_name
+
+    linenum = dts_find_node(tree, full_path)
+    if linenum == 0:
+        # print('can\'t find %s'% full_path)
+        if option == 'del':
+            return 0
+    else:
+        if option.startswith('add'):
+            print('dts_node_query: node %s already exist' % (full_path))
+            return 1
+
+    if len(parent_node) > 0 and dts_find_node(tree, parent_node) == 0:
+        print('parent node %s not exist, can\'t %s %s' % (parent_node, option, node_name))
+        return 2
+
+    if option == 'del':
+        node = tree[linenum]
+
+        start = node['start']
+        end = node['end']
+        # sed -i '5,9d' file
+        if end == start:
+            cmd = 'sed -i \'{}d\' {}'.format(start, dts_file)
+        else:
+            cmd = 'sed -i \'{},{}d\' {}'.format(start, end, dts_file)
+        do_cmd(cmd)
+    elif option.startswith('add'):
+        if len(parent_node) > 0:
+            parent = tree[dts_find_node(tree, parent_node)]
+            pos = parent['end']
+
+            # print('%s [%s - %s]' % (parent_node, parent['start'], parent['end']))
+            if option == 'add' and len(parent['subnode']) > 0:
+                # print('change pos to %s [%s - %s]' % (parent['subnode'][0], tree[parent['subnode'][0]]['start'], parent['end']))
+                pos = tree[parent['subnode'][0]]['start']
+
+            space = int(parent['lspace'] / 8) + 1
+            new_node = "\\t" * space + full_node_name + " {\\n"
+            new_node += "\\t" * space + "};"
+            # sed -i 'lines i\New Line' file.txt
+            cmd = 'sed -i \'{} i\\{}\' {}'.format(pos, new_node, dts_file)
+            do_cmd(cmd)
+        else:
+            new_node = "\n" + full_node_name + " {\n};\n"
+            with open(dts_file, 'a') as f:
+                f.write(new_node)
+
+    return 0
+
+
+def parse_dts_bootargs(dts_file, items):
+    bootargs_val = dts_property_query('getprop', dts_file, 'chosen', 'bootargs', None)
+    if isinstance(bootargs_val, int):
+        print('board.dts -> bootargs: not exists, skip...')
+        return 0  # node not exists
+
+    if not isinstance(bootargs_val, str):
+        print('board.dts -> bootargs: invalid format, need str')
+        return -1
+
+    bootargs_list = bootargs_val[1:-1].split()
+    for k1, v1 in items.items():
+        for i in range(len(bootargs_list)):
+            v2 = bootargs_list[i]
+            if v2.startswith(k1 + '='):
+                if v1 == None:  # del item
+                    del (bootargs_list[i])
+                else:
+                    bootargs_list[i] = '{}={}'.format(k1, v1)
+                items[k1] = None
+    for k1, v1 in items.items():
+        if v1 != None:
+            bootargs_list.append('{}={}'.format(k1, v1))
+    bootargs_val = '"'
+    for i in range(len(bootargs_list) - 1):
+        v2 = bootargs_list[i]
+        bootargs_val = bootargs_val + v2 + ' '
+    bootargs_val = bootargs_val + bootargs_list[-1] + '"'
+    bootargs_val = dts_property_query('setprop', dts_file, 'chosen', 'bootargs', bootargs_val)
+
+    return 0
+
+
+def parse_dts_cfg(dts_file, val):
+    backup_file(dts_file)
+    if 'del_node' in val.keys():
+        items = val['del_node']
+        if not isinstance(items, list):
+            print('board.dts -> del_node: invalid format, need list')
+            record_diff(dts_file)
+            sys.exit(1)
+        for node_info in items:
+            if not isinstance(node_info, dict):
+                print('board.dts -> del_node: invalid item format, need { }')
+                record_diff(dts_file)
+                sys.exit(1)
+            if 'name' not in node_info.keys():
+                print('del_node item need \'name\' key')
+                continue
+            node_name = node_info['name']
+            parent_node = ''
+            option = 'del'
+            if 'path' in node_info.keys():
+                parent_node = node_info['path']
+                if len(parent_node) > 1 and parent_node[-1] == '/':
+                    parent_node = parent_node[:-1]
+            ret = dts_node_query(option, dts_file, parent_node, node_name)
+            if ret < 0:
+                print('parse: %s failed' % node_info)
+                record_diff(dts_file)
+                sys.exit(1)
+    if 'add_node' in val.keys():
+        items = val['add_node']
+        if not isinstance(items, list):
+            print('board.dts -> add_node: invalid format, need list')
+            record_diff(dts_file)
+            sys.exit(1)
+        for node_info in items:
+            if not isinstance(node_info, dict):
+                print('board.dts -> add_node: invalid item format, need { }')
+                record_diff(dts_file)
+                sys.exit(1)
+            if 'name' not in node_info.keys():
+                print('add_node item need \'name\' key')
+                continue
+            node_name = node_info['name']
+            parent_node = ''
+            option = 'add'
+            if 'path' in node_info.keys():
+                parent_node = node_info['path']
+                if len(parent_node) > 1 and parent_node[-1] == '/':
+                    parent_node = parent_node[:-1]
+            if 'add_tail' in node_info.keys():
+                if node_info['add_tail'] > 0:
+                    option = 'add_tail'
+            ret = dts_node_query(option, dts_file, parent_node, node_name)
+            if ret < 0:
+                print('parse: %s failed' % node_info)
+                record_diff(dts_file)
+                sys.exit(1)
+    if 'set_property' in val.keys():
+        items = val['set_property']
+        if not isinstance(items, dict):
+            print('board.dts -> set_property: invalid format, need { }')
+            record_diff(dts_file)
+            sys.exit(1)
+        for node_name, prop_info in items.items():
+            if not isinstance(prop_info, dict):
+                print('board.dts -> set_property: invalid item format, need { }')
+                record_diff(dts_file)
+                sys.exit(1)
+            for prop_name, prop_val in prop_info.items():
+                ret = dts_property_query('setprop', dts_file, node_name, prop_name, prop_val)
+                if ret < 0:
+                    print('parse %s: %s failed' % (prop_name, prop_val))
+                    record_diff(dts_file)
+                    sys.exit(1)
+    if 'del_property' in val.keys():
+        items = val['del_property']
+        if not isinstance(items, dict):
+            print('board.dts -> del_property: invalid format, need { }')
+            record_diff(dts_file)
+            sys.exit(1)
+        for node_name, prop_info in items.items():
+            if not isinstance(prop_info, dict):
+                print('board.dts -> del_property: invalid item format, need { }')
+                record_diff(dts_file)
+                sys.exit(1)
+            for prop_name, prop_val in prop_info.items():
+                ret = dts_property_query('delprop', dts_file, node_name, prop_name, prop_val)
+                if ret < 0:
+                    print('parse %s: %s failed' % (prop_name, prop_val))
+                    record_diff(dts_file)
+                    sys.exit(1)
+    if 'bootargs' in val.keys():
+        items = val['bootargs']
+        if not isinstance(items, dict):
+            print('board.dts -> bootargs: invalid format, need { }')
+            restore_file(dts_file)
+            sys.exit(1)
+        ret = parse_dts_bootargs(dts_file, items)
+        if ret < 0:
+            restore_file(dts_file)
+            sys.exit(1)
+    record_diff(dts_file)
+
+
+def find_target_file(search_path, file_name):
+    for path in search_path:
+        p = path + '/' + file_name
+        if os.path.exists(p):
+            return p
+    return None
+
+
+def merge_kernel_config(defconfig, fragment):
+    global top_dir
+    global kernel_src_path
+    global kerenl_ver
+    global board_config_dir
+    global bsp_path
+
+    framgment_list = [
+        # 1. ${LICHEE_BOARD_CONFIG_DIR}/${LICHEE_KERN_VER}/
+        '{}/{}'.format(board_config_dir, kerenl_ver),
+        # 2. $LICHEE_BSP_DIR/configs/$LICHEE_KERN_VER/
+        '{}/configs/{}'.format(bsp_path, kerenl_ver)
+    ]
+
+    fragment_path = fragment
+
+    if os.path.exists(fragment):
+        fragment_path = fragment
+    else:
+        for search in framgment_list:
+            if os.path.exists('{}/{}'.format(search, fragment)):
+                fragment_path = '{}/{}'.format(search, fragment)
+
+    if not os.path.exists(fragment_path):
+        print('fragment: {} is not exist'.format(fragment))
+        return -1
+
+    kernel_build = '{}/out/kernel/build'.format(top_dir)
+    merge_sh = '{}/scripts/kconfig/merge_config.sh'.format(kernel_src_path)
+    kernel_config = '{}/.config'.format(kernel_build)
+    pwd = os.getcwd()
+
+    cmd = '{} -m {} {}'.format(merge_sh, kernel_config, fragment_path)
+    do_cmd(cmd)
+    cmd = 'mv {}/.config {}'.format(pwd, kernel_config)
+    do_cmd(cmd)
+
+    # cmd = "{} -m /build.sh loadconfig {}".format(top_dir, fragment_path)
+    # do_cmd(cmd)
+    return 0
+
+
+def load_kernel_defconfig(defconfig):
+    global top_dir
+
+    cmd = "cd {}; ./build.sh loadconfig".format(top_dir)
+    ret = do_cmd(cmd)
+    if ret != 0:
+        print('exec {} failed, ret = {}'.format(cmd, ret))
+        return -1
+
+    return 0
+
+
+def save_kernel_defconfig(defconfig):
+    global top_dir
+    global kernel_src_path
+    global kernel_defconf
+    global bsp_path
+    global kernel_cross_compile
+
+    make = '{}/prebuilt/hostbuilt/make4.1/bin/make'.format(top_dir)
+
+    kernel_build = '{}/out/kernel/build'.format(top_dir)
+    tmp_defconf = '{}/defconfig'.format(kernel_build)
+    arch = configs['LICHEE_KERNEL_ARCH']
+
+    custom_env = {
+        'BSP_TOP': configs['LICHEE_BSP_DIR'] + '/',
+        'CROSS_COMPILE': kernel_cross_compile
+    }
+    cmd = 'cd {}; {} -C {} ARCH={} O={} savedefconfig'.format(kernel_src_path, make, kernel_src_path, arch,
+                                                              kernel_build)
+    ret = do_cmd(cmd, custom_env)
+    if ret != 0:
+        print('exec {} failed, ret = {}'.format(cmd, ret))
+        return -1
+
+    cmd = 'mv {} {}'.format(tmp_defconf, kernel_defconf)
+    do_cmd(cmd)
+
+    # cmd = "{}/build.sh saveconfig".format(top_dir)
+    # do_cmd(cmd)
+    return 0
+
+
+def parse_kernel_defconfig(defconfig, val):
+    global top_dir
+    global board_config_dir
+    global kerenl_ver
+
+    wook_path = '{}/{}/'.format(board_config_dir, kerenl_ver)
+    tmpfile = '.tmp.fragment'
+    special_conf = []
+
+    if not isinstance(val, list):
+        print('kernel : invalid format, need list')
+        sys.exit(1)
+
+    ret = load_kernel_defconfig(defconfig)
+    if ret < 0:
+        print('kernel : loadconfig for {} failed!'.format(defconfig))
+        sys.exit(1)
+
+    backup_file(defconfig)
+    for item in val:
+        if item.endswith('.fragment'):
+            ret = merge_kernel_config(defconfig, item)
+            if ret < 0:
+                restore_file(defconfig)
+                sys.exit(1)
+        else:
+            if item[0] == '#':
+                # CONFIG_XXXX is not set
+                item = item.split()[1].strip()
+                if '=' in item:
+                    item = item.split('=')[0].strip()
+                cfgline = '# {} is not set'.format(item)
+            elif '=' in item:
+                cfgline = '{}'.format(item.strip())
+            special_conf.append(cfgline)
+
+    if len(special_conf) > 0:
+        with open(wook_path + tmpfile, 'w') as f:
+            for item in special_conf:
+                f.write(item + '\n')
+        ret = merge_kernel_config(defconfig, tmpfile)
+        if ret < 0:
+            restore_file(defconfig)
+            sys.exit(1)
+
+    ret = save_kernel_defconfig(defconfig)
+    if ret < 0:
+        restore_file(defconfig)
+        sys.exit(1)
+
+    if len(special_conf) > 0:
+        cmd = "rm {}".format(wook_path + tmpfile)
+        do_cmd(cmd)
+    record_diff(defconfig)
+
+
+def merge_config(defconfig, fragment):
+    config_list = {}
+    work_path = os.path.dirname(defconfig)
+    tmp_file = '{}/.quick_config_tmp_defconfig'.format(work_path)
+
+    cmd = 'cp {} {}'.format(defconfig, tmp_file)
+    do_cmd(cmd)
+    output = open(defconfig, 'w')
+
+    with open(fragment, 'r') as f:
+        for line in f:
+            if 'CONFIG_' not in line:
+                continue
+            if '=' in line:
+                # CONFIG_xxx=y
+                config_name = line.split('=')[0].strip()
+            else:
+                # # CONFIG_xxx is not set
+                config_name = line.split()[1].strip()
+            config_list[config_name] = line
+
+    with open(tmp_file, 'r') as f:
+        for line in f:
+            if '=' in line:
+                config_name = line.split('=')[0].strip()
+            else:
+                if len(line.split()) < 5:
+                    output.write(line)
+                    continue
+                config_name = line.split()[1].strip()
+            if not config_name.startswith('CONFIG_'):
+                output.write(line)
+                continue
+            # print('parse: {}, {}'.format(line, config_name))
+            if config_name in config_list.keys():
+                output.write(config_list[config_name])
+                config_list[config_name] = None
+            else:
+                output.write(line)
+    for k in config_list.keys():
+        if config_list[k] == None:
+            continue
+        output.write(config_list[k])
+    output.close()
+    do_cmd('rm {}'.format(tmp_file))
+
+
+def parse_openwrt_defconfig(search_path, openwrt_dir, defconfig, val):
+    global top_dir
+
+    work_path = os.path.dirname(defconfig) + '/'
+    tmpfile = '.tmp.fragment'
+    special_conf = []
+    dot_config = '{}/.config'.format(openwrt_dir)
+
+    if not isinstance(val, list):
+        print('kernel : invalid format, need list')
+        sys.exit(1)
+
+    if not search_path:
+        print('current unsupport .fragment file')
+
+    cmd = 'cp {} {}'.format(defconfig, dot_config)
+    ret = do_cmd(cmd)
+    if ret < 0:
+        print('exec {} failed, ret = {}'.format(cmd, ret))
+        return
+
+    backup_file(defconfig)
+    for item in val:
+        if item.endswith('.fragment'):
+            if not search_path:
+                continue
+            p = find_target_file(search_path, item)
+            if not p:
+                print('{} does not exist'.format(item))
+                continue
+            merge_config(dot_config, p)
+        else:
+            if item[0] == '#':
+                # CONFIG_XXXX is not set
+                item = item.split()[1].strip()
+                if '=' in item:
+                    item = item.split('=')[0].strip()
+                cfgline = '# {} is not set'.format(item)
+            elif '=' in item:
+                cfgline = '{}'.format(item.strip())
+            special_conf.append(cfgline)
+
+    if len(special_conf) > 0:
+        with open(work_path + tmpfile, 'w') as f:
+            for item in special_conf:
+                f.write(item + '\n')
+        merge_config(dot_config, work_path + tmpfile)
+
+    cmd = '{}/build.sh openwrt_rootfs defconfig'.format(top_dir)
+    ret = do_cmd(cmd)
+    if ret < 0:
+        print('exec {} failed, ret = {}'.format(cmd, ret))
+        restore_file(defconfig)
+        return
+
+    cmd = 'cp {} {}'.format(dot_config, defconfig)
+    ret = do_cmd(cmd)
+    if ret < 0:
+        print('exec {} failed, ret = {}'.format(cmd, ret))
+        restore_file(defconfig)
+        return
+
+    if len(special_conf) > 0:
+        cmd = "rm {}".format(work_path + tmpfile)
+        do_cmd(cmd)
+
+    record_diff(defconfig)
+
+
+def parse_env_cfg(env, val):
+    work_path = os.path.dirname(env) + '/'
+    tmp_file = '{}/.quick_config_tmp_env'.format(work_path)
+
+    if not isinstance(val, list):
+        print('env : invalid format, need list')
+        sys.exit(1)
+    item_dict = {}
+
+    backup_file(env)
+
+    cmd = 'cp {} {}'.format(env, tmp_file)
+    do_cmd(cmd)
+
+    for val_dict in val:
+        if 'name' not in val_dict.keys():
+            print('env : {} invalid format, need name'.format(val_dict))
+            continue
+        if 'method' not in val_dict.keys():
+            print('env : {} invalid format, need method'.format(val_dict))
+            continue
+
+        name = val_dict['name']
+        method = val_dict['method']
+        if method == 'add' or method == 'append':
+            if 'val' not in val_dict.keys():
+                print('env : {} invalid format, need val'.format(val_dict))
+                continue
+            v = val_dict['val']
+        elif method == 'del':
+            v = None
+        else:
+            print('env : {} invalid method'.format(val_dict))
+            continue
+        item_dict[name] = {}
+        item_dict[name]['val'] = v
+        item_dict[name]['method'] = method
+        item_dict[name]['done'] = 0
+
+    fenv = open(env, 'w')
+    with open(tmp_file, 'r') as f:
+        for line in f:
+            if line.strip().startswith('#'):
+                fenv.write(line)
+            elif '=' in line:
+                l = line.strip().split('=', 1)
+                key = l[0].strip()
+                v = l[1].strip()
+                if key in item_dict.keys():
+                    if item_dict[key]['method'] == 'add':
+                        tmp = '{}={}\n'.format(key, item_dict[key]['val'])
+                        fenv.write(tmp)
+                    elif item_dict[key]['method'] == 'del':
+                        continue
+                    elif item_dict[key]['method'] == 'append':
+                        if item_dict[key]['val'] not in line:
+                            if line[-1] == '\n':
+                                line = line[:-1]
+                            line = line + item_dict[key]['val'] + '\n'
+                        fenv.write(line)
+                    item_dict[key]['done'] = 1
+                else:
+                    fenv.write(line)
+            else:
+                # unkonw line
+                fenv.write(line)
+    fenv.close()
+
+    cmd = 'rm {}'.format(tmp_file)
+    do_cmd(cmd)
+
+    record_diff(env)
+
+
+def _get_partition_info(part_file):
+    item_dict = []
+    tmp_dict = {}
+
+    with open(part_file, 'r') as f:
+        lines = f.readlines()
+
+    line_num = 0
+    for line in lines:
+        line_num = line_num + 1
+        sline = line.strip()
+        if sline.startswith(';'):
+            continue
+        if re.match(r'^\[mbr\]', sline):
+            if 'name' in tmp_dict.keys():
+                tmp_dict['end'] = line_num - 1
+                item_dict.append(tmp_dict.copy())
+                tmp_dict.clear()
+            tmp_dict['name'] = {}
+            tmp_dict['name']['val'] = 'mbr'
+            tmp_dict['name']['line'] = line_num
+            tmp_dict['start'] = line_num
+            continue
+        match = re.match(r'^\[partition\]', sline)
+        if match:  # last partition end
+            if 'name' in tmp_dict.keys():
+                tmp_dict['end'] = line_num - 1
+                item_dict.append(tmp_dict.copy())
+                tmp_dict.clear()
+            tmp_dict['start'] = line_num
+            if len(item_dict) > 0:
+                item_dict[-1]['part_end'] = line_num - 1
+            continue
+        if '=' not in sline:
+            if 'name' in tmp_dict.keys():
+                tmp_dict['end'] = line_num - 1
+                item_dict.append(tmp_dict.copy())
+                tmp_dict.clear()
+            continue
+        items = sline.split('=')
+        if len(items) < 2:
+            print('{}:{} Invalid format\n'.format(part_file, line_num))
+            continue
+        prop_name = items[0].strip()
+        prop_val = items[1].strip()
+        tmp_dict[prop_name] = {}
+        tmp_dict[prop_name]['val'] = prop_val
+        tmp_dict[prop_name]['line'] = line_num
+
+    if 'name' in tmp_dict.keys():
+        tmp_dict['end'] = line_num - 1
+        tmp_dict['part_end'] = line_num
+        item_dict.append(tmp_dict.copy())
+        tmp_dict.clear()
+
+    # for v in item_dict:
+    #     print('{}:'.format(v))
+    #     for k1,v1 in v.items():
+    #         if 'end' == k1 or 'start' == k1:
+    #             print('{} = {}\t'.format(k1, v1))
+    #             continue
+    #         print('{}\t{} = {}'.format(v1['line'], k1, v1['val']))
+
+    return item_dict
+
+
+def _find_part_info(info, name):
+    for v in info:
+        if name == v['name']['val']:
+            return v
+    return None
+
+
+def parse_sys_partition(part_file, val):
+    global kernel_dts_path
+
+    if not isinstance(val, list):
+        print('partition : invalid format, need list')
+        sys.exit(1)
+    backup_file(part_file)
+
+    last_partition_end = 0
+    for part in val:
+        if not isinstance(part, dict):
+            print('partition : invalid format, need dict')
+            restore_file(part_file)
+            sys.exit(1)
+        items_dict = _get_partition_info(part_file)
+
+        if 'del' in part.keys():
+            if part['del'] == True:
+                is_del = True
+            del part['del']
+        else:
+            is_del = False
+
+        if 'name' not in part.keys():
+            print('partition : invalid format, {}, skip...'.format(part))
+            continue
+        n = _find_part_info(items_dict, part['name'])
+        if not n and is_del == False:  # new partition
+            if last_partition_end == 0:  # inster at last
+                with open(part_file, 'a') as f:
+                    f.write('\n[partition]\n')
+                    for k, v in part.items():
+                        f.write('\t{} = {}\n'.format(k, v))
+            else:
+                idx = last_partition_end
+                cmd = 'sed -i \'{}a \\[partition]\' {}'.format(idx, part_file)
+                do_cmd(cmd)
+                idx = idx + 1
+                for k, v in part.items():
+                    cmd = 'sed -i \'{}a \\\\t{} = {}\' {}'.format(idx, k, v, part_file)
+                    do_cmd(cmd)
+                    idx = idx + 1
+            continue
+        else:
+            if is_del == True:
+                # del partition
+                # sed -i '5,9d' file
+                if n:
+                    cmd = 'sed -i \'{},{}d\' {}'.format(n['start'], n['part_end'], part_file)
+                    do_cmd(cmd)
+                continue
+            for k, v in part.items():
+                if k == 'name':  # special name
+                    continue
+                if k in n.keys():
+                    ln = n[k]['line']
+                    # sed -i 'lines s/\(.*=\s\+\)\(.*\)$/\1{new}/' file
+                    cmd = 'sed -i \'{} s/\\(.*=\\s\\+\\)\\(.*\\)$/\\1{}/\' {}'.format(ln, v, part_file)
+                    do_cmd(cmd)
+                else:
+                    ln = n['end']
+                    cmd = 'sed -i \'{}a \\\\t{} = {}\' {}'.format(ln, k, v, part_file)
+                    do_cmd(cmd)
+
+        last_partition_end = n['part_end']
+
+    record_diff(part_file)
+
+    # update kernel board.dts chosen/bootargs: partitions var if exists
+    items_dict = _get_partition_info(part_file)
+    backup_file(kernel_dts_path)
+    partition = ""
+    has_udisk = False
+    for i in range(len(items_dict)):
+        v = items_dict[i]
+        if 'user_type' not in v.keys():
+            continue
+        if configs['LICHEE_FLASH'] == 'nor':
+            partition = partition + '{}@mtdblock{}:'.format(v['name']['val'], i)
+        elif configs['LICHEE_FLASH'] == 'nand':
+            partition = partition + '{}@ubi0_{}:'.format(v['name']['val'], i)
+        else:
+            partition = partition + '{}@mmcblk0p{}:'.format(v['name']['val'], i)
+        if v['name']['val'] == 'UDISK':
+            has_udisk = True
+    if not has_udisk:
+        # add UDSIK partition
+        if configs['LICHEE_FLASH'] == 'nor':
+            partition = partition + 'UDISK@mtdblock{}'.format(i + 1)
+        elif configs['LICHEE_FLASH'] == 'nand':
+            partition = partition + 'UDISK@ubi0_{}:'.format(i + 1)
+        else:
+            partition = partition + 'UDISK@mmcblk0p{}'.format(i + 1)
+    if partition[-1] == ':':
+        partition = partition[:-1]
+    ret = parse_dts_bootargs(kernel_dts_path, {"partitions": partition})
+    if ret < 0:
+        print("\033[91m partition changed, but board.dts partition update fialed\033[0m")
+        restore_file(kernel_dts_path)
+    record_diff(kernel_dts_path)
+
+
+def parse_board_cfg(BoardConfig, val):
+    if not isinstance(val, dict):
+        print('partition : invalid format, need dict')
+        sys.exit(1)
+
+    backup_file(BoardConfig)
+    for k, v in val.items():
+        cmd = 'grep -Eo \'{}\' {}'.format(k, BoardConfig)
+        ret, out = do_cmd_with_output(cmd)
+        if ret == 0:
+            if v != None:
+                cmd = 'sed -i \'s/^{}:=.*/{}:={}/g\' {}'.format(k, k, v, BoardConfig)
+            else:
+                cmd = 'sed -i \'/{}:=/d\' {}'.format(k, BoardConfig)
+        else:
+            if v != None:
+                cmd = 'echo "{}:={}" >> {}'.format(k, v, BoardConfig)
+        do_cmd(cmd)
+    record_diff(BoardConfig)
+    return
+
+
+def merge_rtos_config(defconfig, fragment):
+    framgment_list = [
+        '{}'.format(os.path.dirname(defconfig)),
+    ]
+    fragment_path = fragment
+
+    if os.path.exists(fragment):
+        fragment_path = fragment
+    else:
+        for search in framgment_list:
+            if os.path.exists('{}/{}'.format(search, fragment)):
+                fragment_path = '{}/{}'.format(search, fragment)
+    if not os.path.exists(fragment_path):
+        print('fragment: {} is not exist'.format(fragment))
+        return -1
+
+    with open(fragment_path) as f:
+        for line in f:
+            line = line.strip()
+            print(line)
+            if line.startswith('#'):
+                conf_name = line.split()[1]
+            else:
+                conf_name = line.split('=', 1)[0]
+            cmd = 'grep -Eo \'{}\' {}'.format(conf_name, defconfig)
+            ret, out = do_cmd_with_output(cmd)
+            if ret == 0:
+                cmd = 'sed -i \'/{}[ =].*/ c {}\' {}'.format(conf_name, line, defconfig)
+            else:
+                if line[-1] == '"':  # is string?
+                    conf_val = line.split('=', 1)[1]
+                    cmd = 'echo {}=\\\"{}\\\" >> {}'.format(conf_name, conf_val, defconfig)
+                else:
+                    cmd = 'echo "{}" >> {}'.format(line, defconfig)
+            do_cmd(cmd)
+    return 0
+
+
+def parse_rtos_defconfig(defconfig, val):
+    global top_dir
+    global board_config_dir
+    global kerenl_ver
+
+    work_path = os.path.dirname(defconfig)
+    tmpfile = work_path + '/.tmp.fragment'
+    special_conf = []
+
+    if not isinstance(val, list):
+        print('kernel : invalid format, need list')
+        sys.exit(1)
+
+    ret = load_kernel_defconfig(defconfig)
+    if ret < 0:
+        print('kernel : loadconfig for {} failed!'.format(defconfig))
+        sys.exit(1)
+
+    backup_file(defconfig)
+    for item in val:
+        if item.endswith('.fragment'):
+            ret = merge_rtos_config(defconfig, item)
+            if ret < 0:
+                restore_file(defconfig)
+                sys.exit(1)
+        else:
+            if item[0] == '#':
+                # CONFIG_XXXX is not set
+                item = item.split()[1].strip()
+                if '=' in item:
+                    item = item.split('=')[0].strip()
+                cfgline = '# {} is not set'.format(item)
+            elif '=' in item:
+                cfgline = '{}'.format(item.strip())
+            special_conf.append(cfgline)
+
+    if len(special_conf) > 0:
+        with open(tmpfile, 'w') as f:
+            for item in special_conf:
+                f.write(item + '\n')
+        ret = merge_rtos_config(defconfig, tmpfile)
+        if ret < 0:
+            restore_file(defconfig)
+            sys.exit(1)
+
+    cmd = "cd {}; ./build.sh rtos oldconfig".format(top_dir)
+    ret, out = do_cmd_with_output(cmd)
+    if ret != 0:
+        print(out)
+        restore_file(defconfig)
+        sys.exit(1)
+
+    if len(special_conf) > 0:
+        cmd = "rm {}".format(tmpfile)
+        do_cmd(cmd)
+    record_diff(defconfig)
+
+
+def update_boot0_config(config, modify_list):
+    modified_config = {}  # 用于保存修改过的配置项
+    # 遍历修改列表，依次更新配置项
+    for key, new_value in modify_list.items():
+        if key in config:
+            item = config[key]
+            is_modified = False  # 标记是否修改
+
+            if isinstance(new_value, bool):
+                # 如果修改列表的值是布尔值
+                if new_value:  # True
+                    if item['is_commented']:  # 如果当前被注释，取消注释
+                        item['is_commented'] = False
+                        is_modified = True
+                    if item['value']:  # 如果有值，改为 'y'
+                        item['value'] = 'y'
+                        is_modified = True
+                else:  # False
+                    if item['is_commented']:  # 如果当前已注释，不修改
+                        continue
+                    if item['value']:  # 如果有值，改为 'n'
+                        item['value'] = 'n'
+                        is_modified = True
+            elif new_value is None:
+                if item['is_commented']:  # 如果当前已注释，不修改
+                    continue
+                if item['value']:  # 如果有值，改为注释
+                    item['is_commented'] = True
+                    is_modified = True
+            else:
+                # 如果修改列表的值是字符串
+                if item['is_commented']:  # 如果被注释，取消注释
+                    item['is_commented'] = False
+                    is_modified = True
+                if item['value'] != new_value:  # 如果当前值不是修改后的字符串，更新为修改后的值
+                    item['value'] = new_value
+                    is_modified = True
+
+            # 如果有修改，则加入到返回结果中
+            if is_modified:
+                modified_config[key] = item
+        else:
+            # 如果在 config 中不存在该配置项，新增
+            if new_value is None:
+                modified_config[key] = {'is_commented': True, 'value': 'y'}
+            else:
+                modified_config[key] = {'is_commented': False, 'value': new_value}
+
+    # 将修改的配置项添加到原始配置中
+    config.update(modified_config)
+    return modified_config
+
+
+def boot0_process_config(file_path, config):
+    # 读取文件内容
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    result = []
+    added_new_config = set()
+
+    # 遍历文件的每一行，检查是否需要修改
+    for line in lines:
+        modified = False
+        stripped_line = line.lstrip('#').strip()  # 移除开头的#并去除空格
+        for key, value in config.items():
+            if stripped_line.startswith(key):  # 如果去除#后的行以key开头
+                if value['is_commented']:  # 如果需要注释
+                    result.append(f"# {key}={value['value']}\n")
+                else:  # 否则替换或修改
+                    if isinstance(value['value'], bool):
+                        if value['value']:
+                            result.append(f"{key}=y\n")
+                        else:
+                            result.append(f"{key}=n\n")
+                    else:
+                        result.append(f"{key}={value['value']}\n")
+                modified = True
+                added_new_config.add(key)
+                break
+
+        # 如果当前行没有修改过，则保留原行
+        if not modified:
+            result.append(line)
+
+    # 如果配置项在源文件中没有找到，则将其添加到末尾
+    for key, value in config.items():
+        if key not in added_new_config:
+            if value['is_commented']:
+                result.append(f"# {key}={value['value']}\n")
+            else:
+                if isinstance(value['value'], bool):
+                    if value['value']:
+                        result.append(f"{key}=y\n")
+                    else:
+                        result.append(f"{key}=n\n")
+                else:
+                    result.append(f"{key}={value['value']}\n")
+
+    # 将处理后的内容写回文件
+    with open(file_path, 'w') as file:
+        file.writelines(result)
+
+
+def parse_boot0_config(config_path, val):
+    # 初始化一个空字典，用于存储配置项的键值对
+    config_dict = {}
+
+    # 使用正则表达式匹配配置项格式： key = value
+    pattern = re.compile(r"^([A-Za-z0-9_]+)\s*=\s*(\S+)\s*$")
+
+    # 检查传入的 val 是否为字典类型
+    if not isinstance(val, dict):
+        # 如果 val 不是字典，打印错误信息并终止程序
+        print('boot0 : invalid format, need dict')
+        sys.exit(1)
+
+    # 遍历 val 字典中的每个文件名及其对应的设置
+    for file_name, settings in val.items():
+        # 构建完整的配置文件路径
+        config_file_path = f"{config_path}/{file_name}"
+
+        # 检查配置文件路径是否存在
+        if not os.path.exists(config_file_path):
+            # 如果文件路径不存在，打印错误信息并终止程序
+            print(f'boot0: invalid config path: {config_file_path}')
+            sys.exit(1)
+
+        # 备份当前的配置文件，以便以后恢复
+        backup_file(config_file_path)
+
+        # 初始化一个空字典，用于存储修改后的配置项
+        after_config = {}
+
+        # 打开配置文件并逐行读取
+        with open(config_file_path, 'r') as file:
+            for line in file:
+                # 去掉每行两端的空白字符
+                line = line.strip()
+
+                # 如果当前行为空，则跳过
+                if not line:
+                    continue
+
+                # 如果当前行是注释（以#开头）
+                if line.startswith("#"):
+                    # 去掉注释符号#，并去除行首的空白
+                    commented_key = line.lstrip('#').strip()
+
+                    # 使用正则表达式检查配置项是否符合预期格式
+                    match = pattern.match(commented_key)
+                    if match:
+                        # 如果匹配成功，将该配置项添加到字典，并标记为注释状态
+                        key, value = match.groups()
+                        config_dict[key] = {"value": value, "is_commented": True}
+                else:
+                    # 如果当前行不是注释，继续进行正则匹配
+                    match = pattern.match(line)
+                    if match:
+                        # 如果匹配成功，将该配置项添加到字典，并标记为非注释状态
+                        key, value = match.groups()
+                        config_dict[key] = {"value": value, "is_commented": False}
+
+            # 更新配置字典，根据传入的设置（settings）修改配置项
+            after_config = update_boot0_config(config_dict, settings)
+
+        # 将更新后的配置应用到配置文件中
+        boot0_process_config(config_file_path, after_config)
+
+        # 记录配置文件与更新后的配置差异
+        record_diff(config_file_path)
+
+    # 函数执行完成后，返回或执行其他操作（此处未实现返回或结束）
+    pass
+
+
+def check_sdk_diskclean_status(lichee_out_path, config_name):
+    check_list = [
+        "staging_dir",
+        "build_dir",
+        "dist",
+        "boot.img",
+    ]
+    for check_node in check_list:
+        check_path = lichee_out_path + "/{}".format(check_node)
+        if os.path.exists(check_path):
+            print("\n\n\033[31m###################### ERROR ##########################\033[0m\n\n")
+            print("\033[31mERROR: Check file exisit in {} \033[0m".format(check_path))
+            print(
+                "\033[31mYou must run 'make distclean' to clean the environment before executing this '{}' config\033[0m".format(
+                    config_name))
+            print("\033[31motherwise you will encounter compilation errors.\033[0m")
+            print("\033[31mPlease run 'make distclean' before executing 'quick_config'.\033[0m\n\n")
+            return False
+    return True
+
+def parse_var(vars, var):
+    max_ref = 10
+    while max_ref > 0:
+        for k, v in vars.items():
+            var = var.replace('${%s}' % (k), v)
+        if '$' not in var:
+            break
+        max_ref = max_ref - 1
+    if '$' in var:
+        print('unknow \"{}\" var.'.format(var))
+    return var
+
+def parse_cfgfile(config_name, in_depends):
+    global configs
+    global config_file
+    global common_config_file
+    global uboot_dts_path
+    global kerenl_ver
+    global bsp_path
+    global top_dir
+    global board_config_dir
+    global rtos_project, rtos_device, rtos_plat
+    global prepare_note, finish_note, check_distclean, force_config
+    global builtin_var
+
+    if not os.path.exists(config_file):
+        print('{} is not exist'.format(config_file))
+        sys.exit(0)
+
+    data = {}
+    common_data = {}
+    if os.path.exists(common_config_file):
+        with open(common_config_file, "r") as json_file:
+            common_data = json5.load(json_file)
+
+    device_data = {}
+    with open(config_file, "r") as json_file:
+        device_data = json5.load(json_file)
+
+    try:
+        use_common_conifg = device_data["use_common_conifg"]
+        device_data.pop("use_common_conifg")
+        if use_common_conifg:
+            # Add common_data to data list
+            data.update(common_data)
+    except KeyError:
+        pass
+
+    try:
+        import_json_file_list = device_data["quick_config_include"]
+        device_data.pop("quick_config_include")
+        for json_file in import_json_file_list:
+            json_file_path = board_config_dir + "/../default/quick_config/" + json_file
+            if os.path.exists(json_file_path):
+                with open(json_file_path, "r") as json_file:
+                    include_data = json5.load(json_file)
+                    data.update(include_data)
+            else:
+                print(f"Cannot find {json_file_path} file")
+    except KeyError:
+        pass
+
+    data.update(device_data)
+
+    if not config_name or len(config_name) == 0:
+        print("\nAvailable Quick Config Name:")
+        i = 0
+        max_key_length = max(len(k) for k in data.keys())
+        for k in data.keys():
+            desc = ""
+            if 'desc' in data[k].keys():
+                desc = data[k]['desc']
+            print("{: 5d} {: <{width}} : {: <}".format(i, k, desc.capitalize(), width=max_key_length))
+            i = i + 1
+        config_name = input('Which would you like? ')
+
+    if config_name.isdigit():
+        config_list = {}
+        i = 0
+        for k in data.keys():
+            config_list[i] = k
+            i = i + 1
+        if int(config_name) >= int(i):
+            print("config index {}: out of range, max {}".format(config_name, i - 1))
+            sys.exit(1)
+        config_name = config_list[int(config_name)]
+
+    for k1, v1 in data[config_name].items():
+        k1 = str(k1)
+        if k1 == 'prepare_note':
+            if not isinstance(v1, list):
+                print('Invalid Format, prepare_note need list. e.g.: ["aa", "bb"]')
+                return
+            prepare_note = v1
+            continue
+        if k1 == 'check_distclean':
+            if not isinstance(v1, bool):
+                print('Invalid Format, check_distclean need bool. e.g.: True')
+                return
+            check_distclean = v1
+            continue
+        if k1 == 'finish_note':
+            if not isinstance(v1, list):
+                print('Invalid Format, finish_noteneed list. e.g.: ["aa", "bb"]')
+                return
+            finish_note = v1
+            continue
+        if k1 == 'force_config':
+            if not isinstance(v1, bool):
+                print('Invalid Format, force_config need bool. e.g.: True')
+                return
+            force_config = v1
+            continue
+
+    if prepare_note:
+        print("\n\033[91m==================== [note]: {} ====================".format(config_name))
+        for sstr in prepare_note:
+            print(sstr)
+        print("\033[0m\n\n")
+        user_input = input("\033[91m I have finished the processing. Please continue. [y/n] \033[0m")
+        if user_input != 'y':
+            sys.exit(1)
+
+    if check_distclean:
+        if not check_sdk_diskclean_status(configs["LICHEE_PLAT_OUT"], config_name):
+            sys.exit(1)
+
+    if config_name not in data.keys():
+        print("config: %s is not exists in %s" % (config_name, config_file))
+        sys.exit(1)
+
+    if not in_depends:
+        if not force_config:
+            input_info = 'It will be overwrite SDK configuration with \'{}\' config, agree? [y/N] '.format(config_name)
+            user_input = input("\n[info]: \033[91m {} \033[0m".format(input_info))
+            if user_input != 'y':
+                sys.exit(1)
+
+    # check depends
+    if 'depends' in data[config_name].keys():
+        for dep in data[config_name]['depends']:
+            print('depends on {}'.format(dep))
+            parse_cfgfile(dep, True)
+
+    if 'configs' in data[config_name].keys():
+        val = data[config_name]['configs']
+        if not isinstance(val, dict):
+            print('configs : invalid format, need dict')
+            sys.exit(1)
+        for k, v in val.items():
+            print('Update quick_config configs: {}={}'.format(k, v))
+            configs[k] = v
+
+    for k1, v1 in data[config_name].items():
+        k1 = str(k1)
+        if k1 == 'sysconfig':
+            global syconfig_path
+            parse_sysconfig(syconfig_path, v1)
+        elif k1 == 'rtos_sysconfig':
+            if rtos_project == None:
+                print('rtos project not exists! ignore \'{}\' config'.format(k1))
+                continue
+            rtos_sysconf = '{}/rtos/board/{}/{}/configs/sys_config.fex'.format(top_dir, rtos_device, rtos_plat)
+            parse_sysconfig(rtos_sysconf, v1)
+        elif k1 == 'bootpkg':
+            bootpkg_path = board_config_dir + '/boot_package.cfg'
+            if not os.path.exists(bootpkg_path):
+                bootpkg_path = board_config_dir + '/../default/boot_package.cfg'
+            if not os.path.exists(bootpkg_path):
+                print("%s is not exists" % bootpkg_path)
+                continue
+            parse_bootpkg(bootpkg_path, v1)
+        elif k1 == 'bootpkg_nor':
+            bootpkg_path = board_config_dir + '/boot_package_nor.cfg'
+            if not os.path.exists(bootpkg_path):
+                bootpkg_path = board_config_dir + '/../default/boot_package_nor.cfg'
+            if not os.path.exists(bootpkg_path):
+                print("%s is not exists" % bootpkg_path)
+                continue
+            parse_bootpkg(bootpkg_path, v1)
+        elif k1 == 'board.dts':
+            parse_dts_cfg(kernel_dts_path, v1)
+        elif k1 == 'uboot-board.dts':
+            if uboot_dts_path != None:
+                parse_dts_cfg(uboot_dts_path, v1)
+            else:
+                print('uboot-board.dts not exist, skip uboot-board.dts item')
+        elif k1 == 'BoardConfig':
+            BoardConfig = None
+            for p in search_list:
+                BoardConfig_path = '{}/BoardConfig.mk'.format(p)
+                if os.path.exists(BoardConfig_path):
+                    BoardConfig = BoardConfig_path
+                    break
+            if BoardConfig != None:
+                parse_board_cfg(BoardConfig, v1)
+            else:
+                print('BoardConfig not exist, skip BoardConfig item')
+        elif k1 == 'BoardConfig_nor':
+            BoardConfig = None
+            for p in search_list:
+                BoardConfig_path = '{}/BoardConfig_nor.mk'.format(p)
+                if os.path.exists(BoardConfig_path):
+                    BoardConfig = BoardConfig_path
+                    break
+            if BoardConfig != None:
+                parse_board_cfg(BoardConfig, v1)
+            else:
+                print('BoardConfig_nor not exist, skip BoardConfig_nor item')
+        elif k1 == 'kernel':
+            print('parse kernel')
+            parse_kernel_defconfig(kernel_defconf, v1)
+        elif k1 == 'openwrt':
+            print('parse openwrt')
+            lichee_ic = configs['LICHEE_IC']
+            lichee_board = configs['LICHEE_BOARD']
+            openwrt_dir = '{}/openwrt/openwrt/'.format(top_dir)
+            # ${TINA_TOPDIR}/openwrt/target/$LICHEE_IC/$LICHEE_IC-$LICHEE_BOARD
+            defconfig = '{}/openwrt/target/{}/{}-{}/defconfig'.format(top_dir, lichee_ic, lichee_ic, lichee_board)
+            search_path = []
+            search_path.append(os.path.dirname(defconfig) + '/configs')
+            search_path.append(os.path.dirname(defconfig))
+            search_path.append('{}/openwrt/target/{}/{}-common/configs'.format(top_dir, lichee_ic, lichee_ic))
+            search_path.append('{}/openwrt/target/{}/{}-common'.format(top_dir, lichee_ic, lichee_ic))
+            parse_openwrt_defconfig(search_path, openwrt_dir, defconfig, v1)
+        elif k1 == 'env':
+            print('parse env')
+            env_fils = [
+                'env-{}.cfg'.format(configs['LICHEE_KERNEL_VERSION'].rsplit('.', 1)[0])
+            ]
+            env_fils.append("env.cfg")
+            for p in search_list:
+                for f in env_fils:
+                    env_path = '{}/{}'.format(p, f)
+                    if os.path.exists(env_path):
+                        break
+                if os.path.exists(env_path):
+                    break
+            if not os.path.exists(env_path):
+                print("%s is not exists" % env_path)
+                continue
+            parse_env_cfg(env_path, v1)
+        elif k1 == 'env_nor':
+            print('parse env_nor')
+            env_fils = [
+                'env-{}.cfg'.format(configs['LICHEE_KERNEL_VERSION'].rsplit('.', 1)[0])
+            ]
+            env_fils.append("env_nor.cfg")
+            for p in search_list:
+                for f in env_fils:
+                    env_path = '{}/{}'.format(p, f)
+                    if os.path.exists(env_path):
+                        break
+                if os.path.exists(env_path):
+                    break
+            if not os.path.exists(env_path):
+                print("%s is not exists" % env_path)
+                continue
+            parse_env_cfg(env_path, v1)
+        elif k1 == 'partition':
+            print('parse partition')
+            for search in search_list:
+                partition_path = '{}/sys_partition.fex'.format(search)
+                if os.path.exists(partition_path):
+                    break
+            if not os.path.exists(partition_path):
+                print("%s is not exists" % partition_path)
+                continue
+            parse_sys_partition(partition_path, v1)
+        elif k1 == 'partition_nor':
+            print('parse partition_nor')
+            for search in search_list:
+                partition_path = '{}/sys_partition_nor.fex'.format(search)
+                if os.path.exists(partition_path):
+                    break
+            if not os.path.exists(partition_path):
+                print("%s is not exists" % partition_path)
+                continue
+            parse_sys_partition(partition_path, v1)
+        elif k1 == 'rtos':
+            if rtos_project == None:
+                print('rtos project not exist, skip it')
+                continue
+            print('parse rtos')
+            rtos_defconf = '{}/rtos/lichee/rtos/projects/{}/{}/defconfig'.format(top_dir, rtos_device, rtos_plat)
+            parse_rtos_defconfig(rtos_defconf, v1)
+        elif k1 == 'boot0':
+            lichee_chip = configs['LICHEE_CHIP']
+            boot0_board_path = '{}/brandy/brandy-2.0/spl/board/{}'.format(top_dir, lichee_chip)
+            if os.path.exists(boot0_board_path):
+                parse_boot0_config(boot0_board_path, v1)
+            else:
+                print('boot not exist, skip it')
+                continue
+        elif k1 == 'cmd':
+            if not isinstance(v1, list):
+                print('cmd : invalid item format, need [ ]')
+                continue
+
+            custom_env = configs.copy()
+            custom_env.update(os.environ.copy())
+
+            for cmd in v1:
+                cmd = parse_var(builtin_var, cmd)
+                ret = do_cmd(cmd, custom_env)
+                if ret != 0:
+                    print('exec {} failed, ret = {}'.format(cmd, ret))
+                    break
+            continue
+        elif k1 == 'depends':
+            continue
+        elif k1 == 'desc':
+            continue
+        elif k1 == 'prepare_note':
+            continue
+        elif k1 == 'finish_note':
+            continue
+        elif k1 == 'configs':
+            continue
+        elif k1 == 'force_config':
+            continue
+        else:
+            print("unkonw type : %s" % (k1))
+
+
+if __name__ == "__main__":
+    try:
+        diff_summary = '{}/.quick_config.diff'.format(os.getcwd())
+        if os.path.exists(diff_summary):
+            do_cmd('rm {}'.format(diff_summary))
+        _load_config(args.buildconfig)
+        init_cfgval()
+        parse_cfgfile(args.config, False)
+        if os.path.exists(diff_summary):
+            print('================================== dump modify diff ==================================')
+            with open(diff_summary, 'r') as f:
+                for line in f:
+                    print(line[:-1])
+            print('==================================   dump   end   ==================================')
+            do_cmd('rm {}'.format(diff_summary))
+        if finish_note:
+            print("\n\033[34m==================== [note] ====================".format(finish_note))
+            for sstr in finish_note:
+                print(sstr)
+            print("\033[0m\n\n")
+    except KeyboardInterrupt:
+        print("\n")
+        pass
+    except KeyError:
+        print("Please select a vaild config by the number.")
+    except Exception as e:
+        print("quick_config Internal error: {}: {}".format(type(e), str(e)))
