@@ -1,0 +1,147 @@
+#!/bin/sh
+#
+# 录像文件自动重命名脚本
+# 将 recorder1, recorder1_1, recorder1_2... 转换为 re_rec_1_0000.mp4, re_rec_1_0001.mp4...
+# 带间隔检测：如果上次最后一个文件是 0013，下次批次从 0023 开始（间隔 10）
+#
+
+RECORDER_DIR="/mnt/extsd/recorder"  # 录像文件目录
+CAMERA_ID="1"                       # 摄像头ID
+PREFIX="re_rec_${CAMERA_ID}_"       # 新文件名前缀：re_rec_1_
+GAP_SIZE=10                         # 每次重启的间隔索引
+
+do_rename() {
+    # 等待SD卡挂载（最多等待10秒）
+    WAIT_COUNT=0
+    MAX_WAIT=10
+    while [ ! -d "$RECORDER_DIR" ] && [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+        echo "[重命名脚本] 等待SD卡挂载... ($WAIT_COUNT/$MAX_WAIT)"
+        sleep 1
+        WAIT_COUNT=$((WAIT_COUNT + 1))
+    done
+
+    # 检查录像目录是否存在
+    if [ ! -d "$RECORDER_DIR" ]; then
+        echo "[重命名脚本] 录像目录不存在: $RECORDER_DIR (等待超时)"
+        return 1
+    fi
+
+    cd "$RECORDER_DIR" || return 1
+
+    # 查找已重命名文件的最大索引号
+    LAST_INDEX=-1
+    for file in ${PREFIX}*.mp4; do
+        if [ -f "$file" ]; then
+            # 提取数字部分（例如：re_rec_1_0013.mp4 -> 0013）
+            NUM=$(echo "$file" | sed "s/${PREFIX}//;s/.mp4//")
+            # 检查是否为有效数字
+            if [ -n "$NUM" ] && echo "$NUM" | grep -qE '^[0-9]+$'; then
+                # 去掉前导零以便比较（使用sed替换）
+                NUM_INT=$(echo "$NUM" | sed 's/^0*//')
+                # 如果全是0，设为0
+                [ -z "$NUM_INT" ] && NUM_INT=0
+                if [ $NUM_INT -gt $LAST_INDEX ]; then
+                    LAST_INDEX=$NUM_INT
+                fi
+            fi
+        fi
+    done
+
+    # 计算本次重命名的起始索引
+    if [ $LAST_INDEX -ge 0 ]; then
+        START_INDEX=$((LAST_INDEX + GAP_SIZE))
+        echo "上次最大索引: $LAST_INDEX，本次从 $START_INDEX 开始"
+    else
+        START_INDEX=0
+        echo "未找到已重命名文件，从 0 开始"
+    fi
+
+    # 获取所有录像文件并排序
+    # 创建临时文件列表用于数字排序
+    TEMP_LIST="/tmp/recorder_files.txt"
+    > "$TEMP_LIST"
+
+    # 添加 recorder1（基础文件）如果存在
+    [ -f "recorder1" ] && echo "0 recorder1" >> "$TEMP_LIST"
+
+    # 添加 recorder1_N 文件，按数字排序
+    for file in recorder1_*; do
+        if [ -f "$file" ]; then
+            # 提取下划线后的数字
+            NUM=$(echo "$file" | sed 's/recorder1_//')
+            echo "$NUM $file" >> "$TEMP_LIST"
+        fi
+    done
+
+    # 检查是否有需要重命名的文件
+    if [ ! -s "$TEMP_LIST" ]; then
+        echo "[重命名脚本] 没有需要重命名的文件"
+        rm -f "$TEMP_LIST"
+        return 0
+    fi
+
+    # 按数字排序并逐个处理
+    CURRENT_INDEX=$START_INDEX
+    LAST_FILE=""
+    sort -n "$TEMP_LIST" | while read NUM FILENAME; do
+        if [ -f "$FILENAME" ]; then
+            # 格式化索引为4位数字（带前导零）
+            NEW_NAME=$(printf "${PREFIX}%04d.mp4" $CURRENT_INDEX)
+
+            if [ "$FILENAME" != "$NEW_NAME" ]; then
+                echo "[重命名脚本] 重命名: $FILENAME -> $NEW_NAME"
+                mv "$FILENAME" "$NEW_NAME"
+            fi
+
+            # 保存最后一个文件名到临时文件（管道中变量不会传出）
+            echo "$NEW_NAME" > /tmp/last_recorder_file
+            CURRENT_INDEX=$((CURRENT_INDEX + 1))
+        fi
+    done
+
+    # 读取最后一个文件名
+    if [ -f /tmp/last_recorder_file ]; then
+        LAST_FILE=$(cat /tmp/last_recorder_file)
+        rm -f /tmp/last_recorder_file
+    fi
+
+    # 删除最后一个文件（可能因断电损坏）
+    if [ -n "$LAST_FILE" ] && [ -f "$LAST_FILE" ]; then
+        echo "[重命名脚本] 删除最后一个文件（可能损坏）: $LAST_FILE"
+        rm -f "$LAST_FILE"
+    fi
+
+    # 清理临时文件
+    rm -f "$TEMP_LIST"
+
+    echo "[重命名脚本] 重命名完成。文件格式: ${PREFIX}XXXX.mp4"
+}
+
+start() {
+    # 后台异步执行，不阻塞系统启动
+    echo "[重命名脚本] 启动后台重命名任务"
+    do_rename &
+}
+
+stop() {
+    echo "[重命名脚本] Stop not implemented"
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+        ;;
+esac
+
+exit 0
