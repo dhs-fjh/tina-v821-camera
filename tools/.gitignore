@@ -1,8 +1,0 @@
-.*
-!.gitignore
-.*.swp
-*.img
-*.pyc
-/product
-/pack/common/keys
-__pycache__/
