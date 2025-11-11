@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# 关机时安全停止录像程序，防止MP4文件损坏
+#
+
+stop() {
+    # 检查录像程序是否在运行
+    if pidof sample_recorder > /dev/null 2>&1; then
+        echo "[关机脚本] 检测到录像程序正在运行，安全停止中..."
+
+        # 发送 SIGTERM 信号，让程序正常关闭文件
+        killall -TERM sample_recorder
+
+        # 等待最多5秒让程序正常退出
+        WAIT_COUNT=0
+        while [ $WAIT_COUNT -lt 5 ] && pidof sample_recorder > /dev/null 2>&1; do
+            sleep 1
+            WAIT_COUNT=$((WAIT_COUNT + 1))
+            echo "[关机脚本] 等待录像程序退出... ($WAIT_COUNT/5)"
+        done
+
+        # 如果还没退出，强制杀死
+        if pidof sample_recorder > /dev/null 2>&1; then
+            echo "[关机脚本] 程序未正常退出，强制停止"
+            killall -9 sample_recorder 2>/dev/null
+        else
+            echo "[关机脚本] 录像程序已安全退出"
+        fi
+    fi
+}
+
+case "$1" in
+    stop)
+        stop
+        ;;
+    *)
+        # 关机时默认执行 stop
+        stop
+        ;;
+esac
+
+exit 0
