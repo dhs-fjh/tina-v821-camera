@@ -2813,7 +2813,7 @@ CONFIG_mpp_sample_recorder=y
 # CONFIG_mpp_sample_CDR_demo is not set
 # CONFIG_mpp_sample_region is not set
 # CONFIG_mpp_sample_rtsp is not set
-CONFIG_mpp_sample_smartIPC_demo=y
+# CONFIG_mpp_sample_smartIPC_demo is not set
 # CONFIG_mpp_sample_select is not set
 # CONFIG_mpp_sample_takePicture is not set
 # CONFIG_mpp_sample_identifyQRCode is not set
