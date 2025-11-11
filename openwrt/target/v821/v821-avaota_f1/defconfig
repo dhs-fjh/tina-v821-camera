@@ -2782,7 +2782,54 @@ CONFIG_mpp_compile_static_lib=y
 # CONFIG_mpp_systrace is not set
 CONFIG_mpp_filerepair=y
 CONFIG_mpp_sample_configfileparser=y
-# CONFIG_PACKAGE_eyesee-mpp-middleware-demo_config is not set
+CONFIG_PACKAGE_eyesee-mpp-middleware-demo=y
+CONFIG_PACKAGE_eyesee-mpp-middleware-demo_config=y
+CONFIG_mpp_sample=y
+# CONFIG_mpp_sample_aec is not set
+# CONFIG_mpp_sample_aenc is not set
+# CONFIG_mpp_sample_ai is not set
+# CONFIG_mpp_sample_ai2aenc is not set
+# CONFIG_mpp_sample_ai2aenc2muxer is not set
+# CONFIG_mpp_sample_ao is not set
+# CONFIG_mpp_sample_aoSync is not set
+# CONFIG_mpp_sample_avmuxer is not set
+# CONFIG_mpp_sample_CodecParallel is not set
+# CONFIG_mpp_sample_demux is not set
+# CONFIG_mpp_sample_demux2adec is not set
+# CONFIG_mpp_sample_demux2adec2ao is not set
+# CONFIG_mpp_sample_demux2vdec is not set
+# CONFIG_mpp_sample_demux2vdec_saveFrame is not set
+# CONFIG_mpp_sample_demux2vdec2vo is not set
+# CONFIG_mpp_sample_driverVipp is not set
+# CONFIG_mpp_sample_file_repair is not set
+# CONFIG_mpp_sample_g2d is not set
+# CONFIG_mpp_sample_glog is not set
+# CONFIG_mpp_sample_MotionDetect is not set
+# CONFIG_mpp_sample_multi_vi2venc2muxer is not set
+# CONFIG_mpp_sample_muxer_multi_stream is not set
+# CONFIG_mpp_sample_OnlineVenc is not set
+# CONFIG_mpp_sample_pdet is not set
+# CONFIG_mpp_sample_recorder is not set
+# CONFIG_mpp_sample_CDR_demo is not set
+# CONFIG_mpp_sample_region is not set
+# CONFIG_mpp_sample_rtsp is not set
+CONFIG_mpp_sample_smartIPC_demo=y
+# CONFIG_mpp_sample_select is not set
+# CONFIG_mpp_sample_takePicture is not set
+# CONFIG_mpp_sample_identifyQRCode is not set
+# CONFIG_mpp_sample_timelapse is not set
+# CONFIG_mpp_sample_UILayer is not set
+# CONFIG_mpp_sample_vdec is not set
+# CONFIG_mpp_sample_venc is not set
+# CONFIG_mpp_sample_virvi is not set
+# CONFIG_mpp_sample_virvi2venc is not set
+# CONFIG_mpp_sample_virvi2venc2ce is not set
+# CONFIG_mpp_sample_twinchn_virvi2venc2ce is not set
+# CONFIG_mpp_sample_virvi2venc2muxer is not set
+# CONFIG_mpp_sample_virvi2vo is not set
+# CONFIG_mpp_sample_vo is not set
+# CONFIG_mpp_sample_VideoResizer is not set
+# CONFIG_mpp_uncommonly_samples is not set
 # CONFIG_PACKAGE_eyesee-mpp-private-onvif is not set
 CONFIG_PACKAGE_eyesee-mpp-private-rtsp=y
 CONFIG_PACKAGE_eyesee-mpp-system=y

@@ -102,7 +102,7 @@ platform/allwinner/eyesee-mpp/middleware/*
 platform/allwinner/eyesee-mpp/middleware/sun300iw1/*
 !platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample
 platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/*
-!platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/bin
+# !platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/bin
 
 
 rtos/*

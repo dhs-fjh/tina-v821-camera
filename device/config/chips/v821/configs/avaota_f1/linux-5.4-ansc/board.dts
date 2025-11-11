@@ -1029,4 +1029,5 @@ hold_time     : Set the hold time for the IR cut operation (in milliseconds)
 
 &cpu0 {
 	cpu-supply = <&reg_vdd_cpu>;
+	operating-points-v2 = <&cpu_opp_table_vf0_1>;
 };
