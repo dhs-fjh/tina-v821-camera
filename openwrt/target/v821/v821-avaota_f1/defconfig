@@ -2809,7 +2809,7 @@ CONFIG_mpp_sample=y
 # CONFIG_mpp_sample_muxer_multi_stream is not set
 # CONFIG_mpp_sample_OnlineVenc is not set
 # CONFIG_mpp_sample_pdet is not set
-# CONFIG_mpp_sample_recorder is not set
+CONFIG_mpp_sample_recorder=y
 # CONFIG_mpp_sample_CDR_demo is not set
 # CONFIG_mpp_sample_region is not set
 # CONFIG_mpp_sample_rtsp is not set
