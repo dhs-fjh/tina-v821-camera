@@ -88,8 +88,11 @@ openwrt/target/v821/*
 
 !openwrt/package
 openwrt/package/*
-!openwrt/package/user_apps
-!openwrt/package/helloworld
+!openwrt/package/*
+openwrt/package/allwinner
+openwrt/package/feeds
+openwrt/package/thirdparty
+
 
 platform/*
 !platform/allwinner

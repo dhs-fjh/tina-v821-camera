@@ -6033,6 +6033,12 @@ CONFIG_PACKAGE_iw=y
 # end of Network
 
 #
+# Rename Recorder
+#
+CONFIG_PACKAGE_rename_recorder=y
+# end of Rename Recorder
+
+#
 # Security
 #
 
