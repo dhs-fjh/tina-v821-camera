@@ -236,10 +236,21 @@
 		bias-pull-down;
 	};
 
+	csi_mclk0_pins_a: csi_mclk0@0 {
+		pins = "PA1";
+		function = "mipi";
+		allwinner,drive = <0>;
+	};
+
+	csi_mclk0_pins_b: csi_mclk0@1 {
+		pins = "PA1";
+		function = "gpio_in";
+	};
+
 	twi0_pins_default: twi0@0 {
 		pins = "PA3", "PA4";
 		function = "twi0";
-		allwinner,drive = <0>;
+		allwinner,drive = <3>;  /* Increased drive strength from 0 to 3 */
 		bias-pull-up;
 	};
 
@@ -569,7 +580,7 @@
 
 	sensor0: sensor@5812000 {
 		device_type = "sensor0";
-		sensor0_mname = "gc2083_mipi";
+		sensor0_mname = "gc02m1_mipi";
 		sensor0_twi_cci_id = <0>;
 		sensor0_twi_addr = <0x6e>;
 		sensor0_mclk_id = <0>;
@@ -580,16 +591,15 @@
 		sensor0_vflip = <0>;
 		sensor0_hflip = <0>;
 		sensor0_iovdd-supply = <>;
-		sensor0_iovdd_vol = <>;
-		sensor0_avdd-supply = <>;
-		sensor0_avdd_vol = <>;
+		sensor0_iovdd_vol = <1800000>;
+		sensor0_avdd-supply = <&pmu_soc_ldo1>;
+		sensor0_avdd_vol = <2800000>;
 		sensor0_dvdd-supply = <>;
-		sensor0_dvdd_vol = <>;
+		sensor0_dvdd_vol = <1500000>;
 		sensor0_power_en = <>;
 		sensor0_reset = <&pio PA 2 GPIO_ACTIVE_LOW>;
 		sensor0_pwdn = <>;
 		status = "okay";
-		act_handle = <>;
 	};
 
 	sensor1: sensor@5812010 {

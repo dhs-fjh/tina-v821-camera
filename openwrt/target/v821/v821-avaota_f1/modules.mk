@@ -114,6 +114,21 @@ endef
 $(eval $(call KernelPackage,sensor-gc2083))
 
 #cp sensor ko to rootfs
+define KernelPackage/sensor-gc02m1
+	SUBMENU:=$(VIDEO_MENU)
+	TITLE:=Sensor gc02m1 support (staging)
+	DEPENDS:= +kmod-vin-v4l2
+	FILES+=$(CONFIG_EXTERNAL_KERNEL_TREE)/bsp/drivers/vin/modules/sensor/gc02m1_mipi.ko
+	AUTOLOAD:=$(call AutoProbe,gc02m1_mipi)
+endef
+
+define KernelPackage/sensor-gc02m1/description
+	Kernel modules for sensor-gc02m1 support
+endef
+
+$(eval $(call KernelPackage,sensor-gc02m1))
+
+#cp sensor ko to rootfs
 define KernelPackage/sensor-sc2336
 	SUBMENU:=$(VIDEO_MENU)
 	TITLE:=Sensor sc2336 support (staging)

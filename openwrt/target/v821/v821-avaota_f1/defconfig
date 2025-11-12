@@ -2618,7 +2618,8 @@ CONFIG_libisp_select_sensor=y
 # CONFIG_gc1084 is not set
 # CONFIG_imx258 is not set
 # CONFIG_gc2053 is not set
-CONFIG_gc2083=y
+# CONFIG_gc2083 is not set
+CONFIG_gc02m1=y
 # CONFIG_gc4663 is not set
 # CONFIG_f37p is not set
 # CONFIG_sc2336 is not set
@@ -3627,8 +3628,9 @@ CONFIG_LVGL8_USE_SUNXIFB_CACHE=y
 # CONFIG_PACKAGE_kmod-fb-sys-fops is not set
 # CONFIG_PACKAGE_kmod-fb-sys-ram is not set
 # CONFIG_PACKAGE_kmod-sensor-f37p is not set
+CONFIG_PACKAGE_kmod-sensor-gc02m1=y
 # CONFIG_PACKAGE_kmod-sensor-gc1084 is not set
-CONFIG_PACKAGE_kmod-sensor-gc2083=y
+# CONFIG_PACKAGE_kmod-sensor-gc2083 is not set
 # CONFIG_PACKAGE_kmod-sensor-gc4663 is not set
 # CONFIG_PACKAGE_kmod-sensor-imx258 is not set
 # CONFIG_PACKAGE_kmod-sensor-imx386 is not set

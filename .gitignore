@@ -54,9 +54,9 @@ dkms.conf
 # debug information files
 *.dwo
 
-brandy/*
+brandy/
 
-bsp/*
+bsp/
 
 build/*
 !build/*
@@ -74,7 +74,7 @@ device/config/chips/v821/configs/*
 
 docs/
 
-kernel/*
+kernel/
 
 openwrt/*
 !openwrt/target
@@ -89,9 +89,15 @@ openwrt/target/v821/*
 !openwrt/package
 openwrt/package/*
 !openwrt/package/*
-openwrt/package/allwinner
+!openwrt/package/allwinner
+openwrt/package/allwinner/*
+!openwrt/package/allwinner/vision
+openwrt/package/allwinner/vision/*
+!openwrt/package/allwinner/vision/libAWIspApi
+openwrt/package/allwinner/vision/libAWIspApi/src
 openwrt/package/feeds
 openwrt/package/thirdparty
+
 
 
 platform/*
@@ -108,7 +114,7 @@ platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/*
 !platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/bin
 !platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/bin/*
 
-rtos/*
+# rtos/*
 # !rtos/lichee
 # rtos/lichee/*
 # !rtos/lichee/rtos
@@ -122,15 +128,18 @@ rtos/
 
 tools/
 
-out/
+out/*
+!out/BoardConfig-select.mk
+
 prebuilt/
+
+# other files
 .disclaimer_accpet
-.buildconfig
 compile_commands.json
-
-
+README.md
 .vscode/
 .claude/
 .cache/
 
-README.md
+# config files
+!.buildconfig

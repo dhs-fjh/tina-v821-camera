@@ -17,6 +17,7 @@ start() {
     [ -f $MODULES_DIR/gc1084_mipi.ko ] && insmod $MODULES_DIR/gc1084_mipi.ko
     [ -f $MODULES_DIR/sp1405_mipi.ko ] && insmod $MODULES_DIR/sp1405_mipi.ko
     [ -f $MODULES_DIR/gc2083_mipi.ko ] && insmod $MODULES_DIR/gc2083_mipi.ko
+    [ -f $MODULES_DIR/gc02m1_mipi.ko ] && insmod $MODULES_DIR/gc02m1_mipi.ko
     [ -f $MODULES_DIR/sc2336_mipi.ko ] && insmod $MODULES_DIR/sc2336_mipi.ko
     [ -f $MODULES_DIR/sc3336_mipi.ko ] && insmod $MODULES_DIR/sc3336_mipi.ko
     [ -f $MODULES_DIR/gc4663_mipi.ko ] && insmod $MODULES_DIR/gc4663_mipi.ko
@@ -48,6 +49,7 @@ stop() {
     [ -f $MODULES_DIR/gc1084_mipi.ko ] && rmmod $MODULES_DIR/gc1084_mipi.ko
 	[ -f $MODULES_DIR/sp1405_mipi.ko ] && rmmod $MODULES_DIR/sp1405_mipi.ko
     [ -f $MODULES_DIR/gc2083_mipi.ko ] && rmmod $MODULES_DIR/gc2083_mipi.ko
+    [ -f $MODULES_DIR/gc02m1_mipi.ko ] && rmmod $MODULES_DIR/gc02m1_mipi.ko
     [ -f $MODULES_DIR/sc2336_mipi.ko ] && rmmod $MODULES_DIR/sc2336_mipi.ko
     [ -f $MODULES_DIR/sc3336_mipi.ko ] && rmmod $MODULES_DIR/sc3336_mipi.ko
     [ -f $MODULES_DIR/gc4663_mipi.ko ] && rmmod $MODULES_DIR/gc4663_mipi.ko
