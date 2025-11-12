@@ -109,15 +109,15 @@ platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/*
 !platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/bin/*
 
 rtos/*
-!rtos/lichee
-rtos/lichee/*
-!rtos/lichee/rtos
-rtos/lichee/rtos/*
-!rtos/lichee/rtos/projects
-rtos/lichee/rtos/projects/*
-!rtos/lichee/rtos/projects/v821_e907
-rtos/lichee/rtos/projects/v821_e907/*
-!rtos/lichee/rtos/projects/v821_e907/avaota_f1
+# !rtos/lichee
+# rtos/lichee/*
+# !rtos/lichee/rtos
+# rtos/lichee/rtos/*
+# !rtos/lichee/rtos/projects
+# rtos/lichee/rtos/projects/*
+# !rtos/lichee/rtos/projects/v821_e907
+# rtos/lichee/rtos/projects/v821_e907/*
+# !rtos/lichee/rtos/projects/v821_e907/avaota_f1
 rtos/
 
 tools/
