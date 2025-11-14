@@ -259,6 +259,18 @@
 		function = "gpio_in";
 	};
 
+	twi1_pins_default: twi1@0 {
+		pins = "PD3", "PD4";
+		function = "twi1";
+		allwinner,drive = <3>;  /* Increased drive strength from 0 to 3 */
+		bias-pull-up;
+	};
+
+	twi1_pins_sleep: twi1@1 {
+		pins = "PD3", "PD4";
+		function = "gpio_in";
+	};
+
 	spi0_pins_default: spi0@0 {
 		pins = "PC9", "PC8", "PC11"; /* clk, mosi, miso */
 		function = "spi0";
@@ -387,6 +399,17 @@
 	twi_drv_used = <1>;
 	status = "okay";
 };
+
+&twi1 {
+	clock-frequency = <400000>;
+	pinctrl-0 = <&twi1_pins_default>;
+	pinctrl-1 = <&twi1_pins_sleep>;
+	pinctrl-names = "default", "sleep";
+	/* For stability and backwards compatibility, we recommend setting 'twi_drv_used' to 1 */
+	twi_drv_used = <1>;
+	status = "okay";
+};
+
 
 &soc_pmu0 {
 	status = "okay";
@@ -592,7 +615,7 @@
 		sensor0_hflip = <0>;
 		sensor0_iovdd-supply = <>;
 		sensor0_iovdd_vol = <1800000>;
-		sensor0_avdd-supply = <&pmu_soc_ldo1>;
+		sensor0_avdd-supply = <>;
 		sensor0_avdd_vol = <2800000>;
 		sensor0_dvdd-supply = <>;
 		sensor0_dvdd_vol = <1500000>;
