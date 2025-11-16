@@ -362,14 +362,14 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart1_pins_default>;
 	pinctrl-1 = <&uart1_pins_sleep>;
-	status = "disabled";
+	status = "okay";
 };
 
 &uart2 {
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart2_pins_default>;
 	pinctrl-1 = <&uart2_pins_sleep>;
-	status = "disabled";
+	status = "okay";
 };
 
 &uart3 {
@@ -439,7 +439,7 @@
 	pinctrl-names = "active", "sleep";
 	pinctrl-0 = <&pwm9_pins_active>;
 	pinctrl-1 = <&pwm9_pins_sleep>;
-	status = "disabled";
+	status = "okay";
 };
 
 &spi0 {
