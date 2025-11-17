@@ -82,7 +82,7 @@
 		};
 
 		size_pool {
-			reg = <0 0x82000000 0 0x01C00000>;
+			reg = <0 0x82000000 0 0x01400000>;
 		};
 
 		linux,cma {
@@ -236,21 +236,10 @@
 		bias-pull-down;
 	};
 
-	csi_mclk0_pins_a: csi_mclk0@0 {
-		pins = "PA1";
-		function = "mipi";
-		allwinner,drive = <0>;
-	};
-
-	csi_mclk0_pins_b: csi_mclk0@1 {
-		pins = "PA1";
-		function = "gpio_in";
-	};
-
 	twi0_pins_default: twi0@0 {
 		pins = "PA3", "PA4";
 		function = "twi0";
-		allwinner,drive = <3>;  /* Increased drive strength from 0 to 3 */
+		allwinner,drive = <0>;
 		bias-pull-up;
 	};
 
@@ -373,7 +362,7 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart1_pins_default>;
 	pinctrl-1 = <&uart1_pins_sleep>;
-	status = "disabled";
+	status = "okay";
 };
 
 &uart2 {
@@ -387,7 +376,7 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart3_pins_default>;
 	pinctrl-1 = <&uart3_pins_sleep>;
-	status = "disabled";
+	status = "okay";
 };
 
 &twi0 {
@@ -450,7 +439,7 @@
 	pinctrl-names = "active", "sleep";
 	pinctrl-0 = <&pwm9_pins_active>;
 	pinctrl-1 = <&pwm9_pins_sleep>;
-	status = "disabled";
+	status = "okay";
 };
 
 &spi0 {
@@ -614,16 +603,16 @@
 		sensor0_vflip = <0>;
 		sensor0_hflip = <0>;
 		sensor0_iovdd-supply = <>;
-		sensor0_iovdd_vol = <1800000>;
+		sensor0_iovdd_vol = <>;
 		sensor0_avdd-supply = <>;
-		sensor0_avdd_vol = <2800000>;
+		sensor0_avdd_vol = <>;
 		sensor0_dvdd-supply = <>;
-		sensor0_dvdd_vol = <1500000>;
+		sensor0_dvdd_vol = <>;
 		sensor0_power_en = <>;
 		sensor0_reset = <&pio PA 2 GPIO_ACTIVE_LOW>;
 		sensor0_pwdn = <>;
 		status = "okay";
-	};
+		};
 
 	sensor1: sensor@5812010 {
 		device_type = "sensor1";
