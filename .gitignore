@@ -113,6 +113,20 @@ platform/allwinner/eyesee-mpp/middleware/sun300iw1/*
 platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/*
 !platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/bin
 !platform/allwinner/eyesee-mpp/middleware/sun300iw1/sample/bin/*
+!platform/allwinner/vision
+platform/allwinner/vision/*
+!platform/allwinner/vision/libAWIspApi
+platform/allwinner/vision/libAWIspApi/*
+!platform/allwinner/vision/libAWIspApi/isp_mpp
+platform/allwinner/vision/libAWIspApi/isp_mpp/*
+!platform/allwinner/vision/libAWIspApi/isp_mpp/isp_v821
+platform/allwinner/vision/libAWIspApi/isp_mpp/isp_v821/*
+!platform/allwinner/vision/libAWIspApi/isp_mpp/isp_v821/libisp
+platform/allwinner/vision/libAWIspApi/isp_mpp/isp_v821/libisp/*
+!platform/allwinner/vision/libAWIspApi/isp_mpp/isp_v821/libisp/isp_cfg
+platform/allwinner/vision/libAWIspApi/isp_mpp/isp_v821/libisp/isp_cfg/*
+!platform/allwinner/vision/libAWIspApi/isp_mpp/isp_v821/libisp/isp_cfg/isp_ini_parse.c
+!platform/allwinner/vision/libAWIspApi/isp_mpp/isp_v821/libisp/isp_cfg/tina.mk
 
 # rtos/*
 # !rtos/lichee
