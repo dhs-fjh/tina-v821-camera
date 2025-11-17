@@ -1,0 +1,150 @@
+/mnt/extsd/bin/sample_recorder -path /mnt/extsd/bin/sample_record
+er.conf
+I0101 00:03:06.335434  1325 sample_recorder.c:1683] <main> hello, sample_multi_vi2venc2muxer
+I0101 00:03:06.343033  1325 sample_recorder.c:57] <ParseCmdLine> sample_multi_vi2venc2muxer:[/mnt/extsd/bin/sample_recorder], arg number is [3]
+I0101 00:03:06.355169  1325 confparser.c:60] <createConfParser> load conf file /mnt/extsd/bin/sample_recorder.conf ok!
+I0101 00:03:06.355937  1325 sample_recorder.c:421] <loadSampleRecordConfig> recorder[1] vi dev[0] capture size[1920-1080] format[32] rate[30] vi buf num[3] wdr[0]
+I0101 00:03:06.356211  1325 sample_recorder.c:424] <loadSampleRecordConfig> recorder[1] encodr type[96] size[1920-1080] frmRate[30] bitRate[5242880] rcMode[0]
+I0101 00:03:06.356458  1325 sample_recorder.c:427] <loadSampleRecordConfig> recorder[1] display size[0-0-0-0] display device[0]
+I0101 00:03:06.356653  1325 sample_recorder.c:430] <loadSampleRecordConfig> recorder[1] record file[/mnt/extsd/recorder/recorder1] record duration[60] record max file cnt[500]
+I0101 00:03:06.356835  1325 sample_recorder.c:433] <loadSampleRecordConfig> sample record test duration[60000]
+I0101 00:03:06.357065  1325 mpi_sys.c:854] <AW_MPI_SYS_SetConf> kfctmpdir is [/tmp]
+I0101 00:03:06.372635  1325 mpi_sys.c:1505] <AW_MPI_SYS_Init> ISP init
+I0101 00:03:06.373968  1325 isp_version.h:32] <isp_version_info> [ISP]>>>>>>>>>>>>>>>>>>>> ISP VERSION INFO <<<<<<<<<<<<<<<<<<<
+IPCORE: ISP603
+branch: libisp-dev
+commit: 85909eef135a0108ea1214df4886d6c741a71c39
+date  : Tue May 27 18:59:00 2025 +0800
+author: <mayifei@allwinnertech.com>
+--------------------------------------------------------
+
+I0101 00:03:06.374490  1325 mpi_sys.c:1507] <AW_MPI_SYS_Init> ISP init done
+I0101 00:03:06.390572  1325 hwdisplay.c:84] <hw_display_init>
+I0101 00:03:06.390951  1325 hwdisplay.c:1020] <hwd_init> (hwd_init 1020)
+E0101 00:03:06.892509  1325 hwdisplay.c:1013] <tryOpenDev> fatal error! open dev[/dev/disp] fail. error[2-No such file or directory]!
+E0101 00:03:06.892854  1325 hwdisplay.c:1030] <hwd_init> fatal error! Failed to open disp device
+E0101 00:03:06.893100  1325 mpi_vo.c:382] <VO_Construct> fatal error! hw display init fail!
+E0101 00:03:06.893389  1325 mpi_sys.c:1554] <AW_MPI_SYS_Init> VO Construct error!
+[   14.928788] dma dma0chan0: The timeout func is not suportted or chan->private is NULL, timeout mode not used
+I0101 00:03:06.984982  1325 audio_hw.c:198] <MakeAllMixerElemsAvailable> pcm open and close, all MixerElems maybe exist.
+I0101 00:03:06.985386  1325 alsa_interface.c:736] <alsaOpenMixer> open mixer:hw:0
+I0101 00:03:06.987668  1325 alsa_interface.c:792] <alsaOpenMixer> set playback vol_val to value: 27, mppValue:87
+I0101 00:03:06.988040  1325 alsa_interface.c:805] <alsaOpenMixer> set playback soft_vol val to value: 130, mppValue:0
+I0101 00:03:06.988333  1325 alsa_interface.c:736] <alsaOpenMixer> open mixer:hw:1
+I0101 00:03:06.989942  1325 sample_recorder.c:1753] <main> create message queue success threadId[0xb7d13728].
+I0101 00:03:06.991116  1325 video.c:138] <video_init> [ISP]video[   14.941206] sunxi:vin:[INFO]: video0 open
+ device name is vin_video0
+I0101 00:03:06.992310  1325 isp_dev.c:588] <isp_video_open> [ISP]open video device[0], detect isp0 success!
+I0101 00:03:06.9928[   14.942841] sunxi:vin:[INFO]: [gc02m1_mipi]PWR_ON!
+33  1328 sample_recorder.c:1565] <MsgQueueThread> message queue thread start.
+I0101 00:03:06.994393  1327 mpi_sys.c:1085] <MonitorEnvVarThread> detect user environment:
+I0101 00:03:06.994690  1327 mpi_sys.c:1086] <MonitorEnvVarThread> /tmp/mpp_log_level
+I0101 00:03:06.994911  1327 mpi_sys.c:1087] <MonitorEnvVarThread> /tmp/mpp_venc_sei_config_param
+I0101 00:03:06.997166  1325 vide[   14.947172] sunxi:vin:[INFO]: ve_online close
+o.c:209] <video_set_fmt> [ISP]vi[   14.947902] sunxi:vin:[WARN]: user want 1920*1080, but sensor can find 1600*1080
+deo0 fd[8] ve_online_en=0, dma_buf_num=0
+[   14.949247] sunxi:sunxi_sidget_key_map_info() +230: Failed to find "ft_zone" in dts.
+W0101 00:03:07.000664  1325 videoInputHw.c:901] <videoInputHw_SetChnAttr> Be careful! vipp[0] colorspace set and get not same[7-33]
+I0101 00:03:07.003000  1325 isp_dev.c:408] <isp_tdm_open> [ISP]tdm_rx device name is sunxi_tdm_rx.0
+W0101 00:03:07.003371  1325 isp_dev.c:454] <isp_dev_open> [ISP_WARN]ISP0 maybe online mode, ignore tdm open failed.
+I0101 00:03:07.004353  1325 isp_dev.c:480] <isp_dev_open> [ISP]open isp device[0] success!
+W0101 00:03:07.017115  1325 isp_helper.c:146] <isp_ctx_save_init> [ISP_WARN]open /mnt/extsd/isp0_1600_1200_30_0_gc02m1_mipi_ctx_saved.bin failed, err:No such file or directory.
+I0101 00:03:07.017678  1325 isp_ini_parse.c:1611] <parser_ini_info> [ISP]prefer isp config: [gc02m1_mipi], 1600x1200, 30, 0, 0
+W0101 00:03:07.022461  1325 isp_ini_parse.c:1639] <parser_ini_info> [ISP_WARN]cannot find gc02m1_mipi_1600_1200_30_0_0 isp config, use gc2083_mipi_1920_1088_15_0_0 -> [gc2083_mipi_isp603_20241205_171656_final_rgb_suit]
+[ISP]read restrict mark_id is 0x6c00
+I0101 00:03:07.049051  1325 isp.c:1718] <isp_run> [ISP]create isp0 server thread!
+I0101 00:03:07.050180  1326 videoInputHw.c:5244] <VideoInputHw_CapThread> isp[0] sensor info siz[   15.000606] sunxi:vin:[WARN]: height is towards 16 alignment
+e:1600x1200, user set size:1920x1080
+E0101 00:03:07.050619  1326 videoInputHw.c:5250] <VideoInputHw_CapThread> Be careful! Exception Case: user resolution[1920x1080] Exceeds the sensor resolution[1600x1200].
+I0101 00:03:07.056140  1330 TDMRawProcessForTools.c:591] <SaveTdmRawDataThread> pRawInfo->flagpath is /tmp/isp0_1600_1200_30_0/raw/raw_flag
+I0101 00:03:07.067850  1326 videoInputHw.c:5295] <VideoInputHw_CapThread> EnableVipp[0]: vfmt.bufs:3, online:0
+I0101 00:03:07.068287  1326 video.c:708] <video_queue_buffer> [ISP]buffer 0 plane 0x82021000 DMABUF fd is 13
+I0101 00:03:07.068594  1326 video.c:708] <video_queue_buffer> [ISP]buffer 1 plane 0x8229f000 DMABUF fd is 14
+I0101 00:03:07.068885  1326 video.c:708] <video_queue_buffer> [ISP]buffer 2 plane 0x8251d000 DMABUF fd is 15
+I0101 00:03:07.069095  1326 videoInputHw.c:5305] <VideoInputHw_CapThread> pVipp[0]->mstAttr.large_dma_merge_en = 0
+[   15.024115] sunxi:twi-42502000.twi0:[ERR]: drv-mode: Timeout when sending 9th SCL clk
+[   15.025034] sunxi:twi-42502000.twi0:[ERR]: drv mode: TWI BUS error state is drv:0x1 eng:0x20
+[   15.026040] sunxi:twi-42502000.twi0:[ERR]: drv-mode: xfer failed (dev addr:0x37)
+[   15.026958] sunxi:twi-42502000.twi0:[ERR]: drv-mode: Timeout when sending 9th SCL clk
+[   15.027869] sunxi:twi-42502000.twi0:[ERR]: drv mode: TWI BUS error state is drv:0x1 eng:0x20
+[   15.028877] sunxi:twi-42502000.twi0:[ERR]: drv-mode: xfer failed (dev addr:0x37)
+[   15.029807] sunxi:twi-42502000.twi0:[ERR]: drv-mode: Timeout when sending 9th SCL clk
+[   15.030713] sunxi:twi-42502000.twi0:[ERR]: drv mode: TWI BUS error state is drv:0x1 eng:0x20
+[   15.031708] sunxi:twi-42502000.twi0:[ERR]: drv-mode: xfer failed (dev addr:0x37)
+[   15.032614] sunxi:vin:[INFO]: [VIN_DEV_I2C]gc02m1_mipi write retry 3, write addr/data is 0xfd/0x80
+[   15.033650] sunxi:vin:[ERR]: [VIN_DEV_I2C_ERR]gc02m1_mipi sensor write array error, array_size 208!
+I0101 00:03:07.089660  1325 videoInputHw.c:1054] <videoInputHw_ChnEnable> receive enable vipp[0] reply: 0x0!
+I0101 00:03:07.090609  1325 sample_recorder.c:876] <createVipp> create vi dev[0] vi chn[0] success!
+I0101 00:03:07.090900  1325 sample_recorder.c:1077] <configVencChnAttr> venc ste Rcmode=1
+I0101 00:03:07.091119  1325 sample_recorder.c:1093] <createVencChn> encpp SharpAttenCoefPer=100
+INFO   : cedarc <cdc_log_set_level:78>: Set log level to 5 from /etc/cedarc.conf
+[   15.061086] sunxi:VE:[INFO]: 469 enable_cedar_hw_clk_module(): execute set_vcu_en_regmode_to1_to0
+[   15.061138] sunxi:VE:[INFO]: 469 enable_cedar_hw_clk_module(): execute set_vcu_en_regmode_to1_to0
+[   15.062231] sunxi:VE:[INFO]: 1264 ioctl_platform(): IOCTL_SET_CSI_IRQ_FUNC
+[   15.064194] sunxi:VE:[INFO]: 469 enable_cedar_hw_clk_module(): execute set_vcu_en_regmode_to1_to0
+I0101 00:03:07.116154  1332 VideoEnc_Component.c:1311] <CedarvEncInit> VencChn[0] set VbrOptEn 0
+I0101 00:03:07.116550  1332 VideoEnc_Component.c:1333] <CedarvEncInit> VencChn[0] set ProductCase mode: 1
+I0101 00:03:07.116911  1325 sample_recorder.c:1101] <createVencChn> create venc channel[0] success!
+I0101 00:03:07.117161  1325 sample_recorder.c:1128] <createVencChn> set srcFrameRate:30, venc framerate:30
+I0101 00:03:07.117450  1325 VideoEnc_Component.c:4510] <VideoEncSetFrameRate> vencChn[0] set new framerate:30
+I0101 00:03:07.117674  1325 sample_recorder.c:1145] <createVencChn> VencChn[0] ispVeLink:1-0-0
+I0101 00:03:07.117865  1325 sample_recorder.c:1148] <createVencChn> create venc chn[0] success!
+W0101 00:03:07.118035  1325 sample_recorder.c:575] <getFileFormatByName> Be careful! extend name is not exist, default to mp4
+I0101 00:03:07.122116  1325 RecRender_Component.c:994] <RecRenderSetFd> muxChn[0] dup fd[20]->[21]
+I0101 00:03:07.122805  1325 sample_recorder.c:1197] <createMuxChn> create muxChn[0] success!
+I0101 00:03:07.123079  1325 sample_recorder.c:1218] <createMuxChn> create mux chn[0] file format[0]
+WARNING: cedarc <CheckSetParamInt:778>: Notice: eRcMode is 0, but its suggested value is 1 !
+I0101 00:03:07.123463  1325 VideoEnc_Component.c:993] <setVbvBufferConfig> bitrate: 5120 Kbps, [   15.064343] sunxi:VE:[INFO]: 469 enable_cedar_hw_clk_module(): execute set_vcu_en_regmode_to1_to0
+set encode vbv size [3658752]bytes, frame length threshold [1037312]bytes
+I0101 00:03:07.123851  1325 VideoEnc_Component.c:2474] <CedarvVideoEncInit> VencChn[0] Online Mode=1,Chn=0,BufNum=0,OnlineEnFlag=0,sensorID=0,bkID=0,VcuOn=1,MultiSensorOnlineEn=0
+WARNING: cedarc <resetEncoderVcu:887>: reset vcu and encoder
+I0101 00:03:07.185639  1325 RecRender_Component.c:1191] <RecRenderSetH264SpsPpsInfo> muxChn[0] set Venc header data! not find VeChn[0] in streamId binding list, perhaps set SpsPps before binding tunnel!
+I0101 00:03:07.186032  1325 VideoEnc_Component.c:7956] <VideoEncComponentTunnelRequest> set inputPortTunnelFlag = TRUE
+I0101 00:03:07.186442  1325 mpi_sys.c:656] <SYS_DecideBindPortIndex> MOD_ID_VENC: PortDef.nPortIndex: 0, PortDef.eDir: 0, PortDef.bEnabled: 1, PortDef.eDomain: 1, pDstPortIdx: 0
+I0101 00:03:07.186700  1325 VideoEnc_Component.c:7922] <VideoEncComponentTunnelRequest> set outputPortTunnelFlag = TRUE
+I0101 00:03:07.186909  1325 RecRender_Component.c:1584] <RecRenderComponentTunnelRequest> unsigned int nPort: 0
+I0101 00:03:07.187121  1325 RecRender_Component.c:1290] <RecRenderVeChnBindStreamId> VeChn mChnId: 0 bind StreamId: 0
+W0101 00:03:08.187945  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+W0101 00:03:09.092443  1326 videoInputHw.c:5672] <VideoInputHw_CapThread> Be careful! vipp fds select timeout[2000]ms, setNum:0!
+W0101 00:03:09.188512  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+E0101 00:03:10.069434  1329 events.c:162] <events_loop> [ISP_ERR]isp0 event select timeout
+W0101 00:03:10.189037  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+W0101 00:03:11.094474  1326 videoInputHw.c:5672] <VideoInputHw_CapThread> Be careful! vipp fds select timeout[2000]ms, setNum:0!
+W0101 00:03:11.189583  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+I0101 00:03:12.188034  1334 RecRender_Component.c:5057] <RecRender_ComponentThread> Be careful! muxChn[0] wait InputFrame timeout, msgNum:0
+W0101 00:03:12.190073  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+E0101 00:03:13.072435  1329 events.c:162] <events_loop> [ISP_ERR]isp0 event select timeout
+W0101 00:03:13.096428  1326 videoInputHw.c:5672] <VideoInputHw_CapThread> Be careful! vipp fds select timeout[2000]ms, setNum:0!
+W0101 00:03:13.190631  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+W0101 00:03:14.191147  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+W0101 00:03:15.098466  1326 videoInputHw.c:5672] <VideoInputHw_CapThread> Be careful! vipp fds select timeout[2000]ms, setNum:0!
+W0101 00:03:15.191717  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+E0101 00:03:16.075442  1329 events.c:162] <events_loop> [ISP_ERR]isp0 event select timeout
+W0101 00:03:16.192284  1332 VideoEnc_Component.c:10762] <ComponentThread> Be careful! vencChn[0] timeout for waiting outputStream. input frames stat:ready[0]+using[0]+used[0]=total[0]
+^CI0101 00:03:16.469363  1325 sample_recorder.c:48] <handle_exit> user want to exit!
+I0101 00:03:16.470113  1332 VideoEnc_Component.c:9242] <ReturnUseOrigFrameBeforeSetStateIdle> VencChn[0] input orig Using FrameList is empty
+I0101 00:03:16.470810  1334 RecRender_Component.c:3551] <RecSinkDrainAllRSPackets> muxChn[0] muxerMode[0] begin to drain packets
+I0101 00:03:16.471102  1334 RecRender_Component.c:3616] <RecSinkDrainAllRSPackets> muxChn[0]muxerMode[0] drain [0]packets, ShutDownNow[0]
+E0101 00:03:16.471389  1334 RecRender_Component.c:4704] <RecRender_ComponentThread> fatal error! muxChn[0] maybe not muxerInit? nOutputFd[21]>=0
+I0101 00:03:16.471660  1334 RecRender_Component.c:4718] <RecRender_ComponentThread> muxChn[0] release all frames to VEnc, AEnc and TEnc, when state[0x3]->idle
+I0101 00:03:16.474419  1325 RecRender_Component.c:2351] <RecRenderComponentDeInit> recorder render component exited!
+[   15.075081] sunxi:VE:[INFO]: 469 enable_cedar_hw_clk_module(): execute set_vcu_en_regmode_to1_to0
+[   24.425602] sunxi:VE:[INFO]: 1175 stop_proc_info(): can not find match channel, id = 0
+W0101 00:03:17.100442  1326 videoInputHw.c:5672] <VideoInputHw_CapThread> Be careful! vipp fds select timeout[2000]ms, setNum:0!
+I0101 00:03:17.100821  1326 videoInputHw.c:5376] <VideoInputHw_CapThread> DisableVipp[0]: vfmt.bufs:3, online:0
+I0101 00:03:17.130753  1325 videoInputHw.c:1090] <videoInputHw_ChnDisable> receive disable vipp[0] reply: 0x0!
+I0101 00:03:17.134505  1325 isp_helper.c:214] <isp_ctx_save_exit> [ISP]save isp_ctx to /mnt/extsd/isp0_1600_1200_30_0_gc02m1_mipi_ctx_saved.bin success, data_len:38644!!!
+I0101 00:03:17.136297  1325 isp_dev.c:513] <isp_dev_close> [ISP]close isp device[0] success!
+I0101 00:03:17.136723  1330 TDMRawProcessForTools.c:563] <tdm_raw_process_ft_close> isp0 close process tdm raw data
+E010[   25.087554] sunxi:vin:[INFO]: [gc02m1_mipi]PWR_OFF!
+1 00:03:17.137021  1330 isp.c:2018] <isp_register_tdmbuffer_done_callback> [ISP_ERR]isp0 device [   25.088724] sunxi:vin:[INFO]: video0 close
+is NULL!
+I0101 00:03:17.137571  1325 mpi_isp.c:773] <AW_MPI_ISP_Stop> TdmRawThread pRetVal=0
+I0101 00:03:17.139948  1328 sample_recorder.c:1657] <MsgQueueThread> message queue thread stop.
+I0101 00:03:17.140513  1325 alsa_interface.c:839] <alsaCloseMixer> close mixer[0x325e7c].card_id:0
+I0101 00:03:17.140996  1325 alsa_interface.c:839] <alsaCloseMixer> close mixer[0x32729c].card_id:1
+I0101 00:03:17.141472  1325 mpi_vo.c:408] <VO_Destruct> already destruct vo
+I0101 00:03:17.142426  1327 mpi_sys.c:1097] <MonitorEnvVarThread> MonitorEnvVar thread receive stop command, cur sys state is:2
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I0101 00:03:17.143123  1325 sample_recorder.c:1862] <main> /mnt/extsd/bin/sample_recorder test result: success
+root@(none):/#
