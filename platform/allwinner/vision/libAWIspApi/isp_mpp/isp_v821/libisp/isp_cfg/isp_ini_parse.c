@@ -29,7 +29,7 @@
 
 #if (ISP_VERSION == 603)
 
-#if defined(SENSOR_GC2053) || defined(SENSOR_GC1084) || defined(SENSOR_GC2083) || \
+#if defined(SENSOR_GC2053) || defined(SENSOR_GC1084) || defined(SENSOR_GC2083) || defined(SENSOR_GC02M1) || \
 	defined(SENSOR_F37P) || defined(SENSOR_SC2336) || defined(SENSOR_SC3336)|| \
 	defined(SENSOR_SC200AI) || defined(SENSOR_BF2257CS) || defined(SENSOR_IMX258) || \
 	defined(SENSOR_GC4663) || defined(SENSOR_F58) || defined(SENSOR_OS02G10) || defined(SENSOR_SC1346) || \
@@ -61,6 +61,10 @@
 #include "SENSOR_H/gc2083/gc2083_mipi_isp603_20241205_171656_final_rgb_suit_dis_blc.h"
 #endif
 
+#ifdef SENSOR_GC02M1
+/* GC02M1 converted config from GC2083 ISP603 template */
+#include "SENSOR_H/gc02m1/gc02m1_mipi_isp603_converted_from_gc2083.h"
+#endif
 
 #ifdef SENSOR_GC4663
 #include "SENSOR_H/gc4663/gc4663_mipi_isp603_20241204_rgb.h"
@@ -995,7 +999,7 @@ int isp_parser_tbl(struct isp_param_config *isp_ini_cfg, char *tbl_patch)
 struct isp_cfg_array cfg_arr[] = {
 #if (ISP_VERSION == 603)
 
-#if defined(SENSOR_GC2053) || defined(SENSOR_GC1084) || defined(SENSOR_GC2083) || \
+#if defined(SENSOR_GC2053) || defined(SENSOR_GC1084) || defined(SENSOR_GC2083) || defined(SENSOR_GC02M1) || \
 	defined(SENSOR_F37P) || defined(SENSOR_SC2336) || defined(SENSOR_SC3336)|| \
 	defined(SENSOR_SC200AI) || defined(SENSOR_BF2257CS) || defined(SENSOR_IMX258) || \
 	defined(SENSOR_GC4663) || defined(SENSOR_F58) || defined(SENSOR_OS02G10) || defined(SENSOR_SC1346) || \
@@ -1035,6 +1039,11 @@ struct isp_cfg_array cfg_arr[] = {
 	{"gc2083_mipi_2",  "gc2083_mipi_isp603_20241205_171656_final_ir", 1920, 1088, 15, 0, 1, &gc2083_mipi_ir_isp_cfg},
 	{"gc2083_mipi",  "gc2083_mipi_isp603_20241205_171656_final_rgb_suit", 1280, 720, 20, 0, 0, &gc2083_mipi_rgb_isp_cfg},
 #endif
+#endif
+
+#ifdef SENSOR_GC02M1
+	/* GC02M1: 1600x1200 @ 30fps, converted from GC2083 ISP603 */
+	{"gc02m1_mipi",  "gc02m1_mipi_isp603_converted_rgb", 1600, 1200, 30, 0, 0, &gc02m1_mipi_rgb_isp_cfg},
 #endif
 
 #ifdef SENSOR_GC4663
